@@ -1,0 +1,235 @@
+import { app, BrowserWindow, Menu, Tray, nativeImage } from 'electron';
+import { join } from 'path';
+import { IpcHandlers } from './ipc/handlers';
+
+class WorkTrackerApp {
+  private mainWindow: BrowserWindow | null = null;
+  private tray: Tray | null = null;
+  private ipcHandlers: IpcHandlers;
+  private dataPath: string;
+
+  constructor() {
+    this.dataPath = join(app.getPath('userData'), 'work-tracker-data');
+    this.ipcHandlers = new IpcHandlers(this.dataPath);
+    this.setupApp();
+  }
+
+  private setupApp(): void {
+    // macOS에서 모든 창이 닫혀도 앱을 종료하지 않음
+    app.on('window-all-closed', () => {
+      if (process.platform !== 'darwin') {
+        app.quit();
+      }
+    });
+
+    app.on('activate', () => {
+      // macOS에서 독 아이콘 클릭 시 창 다시 열기
+      if (BrowserWindow.getAllWindows().length === 0) {
+        this.createMainWindow();
+      }
+    });
+
+    app.whenReady().then(() => {
+      this.createMainWindow();
+      this.createTray();
+      this.createMenu();
+    });
+
+    // 앱 종료 시 정리
+    app.on('before-quit', () => {
+      if (this.tray) {
+        this.tray.destroy();
+      }
+    });
+  }
+
+  private createMainWindow(): void {
+    // 메인 윈도우 생성
+    this.mainWindow = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      minWidth: 800,
+      minHeight: 600,
+      titleBarStyle: 'hiddenInset', // macOS 스타일
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: join(__dirname, '../preload/preload.js'),
+        webSecurity: true
+      },
+      show: false, // 로딩 완료 후 보이기
+      icon: this.getAppIcon()
+    });
+
+    // 개발 환경에서는 webpack-dev-server 주소, 프로덕션에서는 빌드된 파일
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
+      this.mainWindow.loadURL('http://localhost:3000');
+      this.mainWindow.webContents.openDevTools();
+    } else {
+      this.mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+    }
+
+    // 윈도우 이벤트
+    this.mainWindow.once('ready-to-show', () => {
+      this.mainWindow?.show();
+      
+      // 개발 환경에서는 즉시 포커스
+      if (isDev) {
+        this.mainWindow?.focus();
+      }
+    });
+
+    this.mainWindow.on('closed', () => {
+      this.mainWindow = null;
+    });
+
+    // 윈도우가 최소화될 때의 동작은 기본 동작을 사용
+
+    this.mainWindow.on('close', (event) => {
+      if (process.platform === 'darwin') {
+        // macOS에서는 창을 숨기기만 함
+        event.preventDefault();
+        this.mainWindow?.hide();
+      }
+    });
+  }
+
+  private createTray(): void {
+    const trayIcon = this.getAppIcon();
+    this.tray = new Tray(trayIcon);
+    
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Work Tracker 열기',
+        click: () => {
+          if (this.mainWindow) {
+            this.mainWindow.show();
+            this.mainWindow.focus();
+          } else {
+            this.createMainWindow();
+          }
+        }
+      },
+      {
+        label: '스크린샷 캡처',
+        click: () => {
+          // IPC를 통해 스크린샷 캡처 실행
+          this.ipcHandlers.sendToRenderer('capture-screenshot-request');
+        }
+      },
+      {
+        type: 'separator'
+      },
+      {
+        label: '설정',
+        click: () => {
+          if (this.mainWindow) {
+            this.mainWindow.show();
+            this.mainWindow.focus();
+            this.mainWindow.webContents.send('navigate-to', '/settings');
+          }
+        }
+      },
+      {
+        type: 'separator'
+      },
+      {
+        label: '종료',
+        click: () => {
+          app.quit();
+        }
+      }
+    ]);
+
+    this.tray.setToolTip('Work Tracker');
+    this.tray.setContextMenu(contextMenu);
+
+    // 트레이 아이콘 클릭 시 메인 윈도우 토글
+    this.tray.on('click', () => {
+      if (this.mainWindow) {
+        if (this.mainWindow.isVisible()) {
+          this.mainWindow.hide();
+        } else {
+          this.mainWindow.show();
+          this.mainWindow.focus();
+        }
+      } else {
+        this.createMainWindow();
+      }
+    });
+  }
+
+  private createMenu(): void {
+    const template: Electron.MenuItemConstructorOptions[] = [
+      {
+        label: 'Work Tracker',
+        submenu: [
+          { role: 'about', label: 'Work Tracker 정보' },
+          { type: 'separator' },
+          { role: 'services', label: '서비스' },
+          { type: 'separator' },
+          { role: 'hide', label: '숨기기' },
+          { role: 'hideOthers', label: '다른 앱 숨기기' },
+          { role: 'unhide', label: '모두 보기' },
+          { type: 'separator' },
+          { role: 'quit', label: '종료' }
+        ]
+      },
+      {
+        label: '편집',
+        submenu: [
+          { role: 'undo', label: '실행 취소' },
+          { role: 'redo', label: '다시 실행' },
+          { type: 'separator' },
+          { role: 'cut', label: '잘라내기' },
+          { role: 'copy', label: '복사' },
+          { role: 'paste', label: '붙여넣기' },
+          { role: 'selectAll', label: '모두 선택' }
+        ]
+      },
+      {
+        label: '보기',
+        submenu: [
+          { role: 'reload', label: '새로고침' },
+          { role: 'forceReload', label: '강제 새로고침' },
+          { role: 'toggleDevTools', label: '개발자 도구' },
+          { type: 'separator' },
+          { role: 'resetZoom', label: '실제 크기' },
+          { role: 'zoomIn', label: '확대' },
+          { role: 'zoomOut', label: '축소' },
+          { type: 'separator' },
+          { role: 'togglefullscreen', label: '전체 화면' }
+        ]
+      },
+      {
+        label: '윈도우',
+        submenu: [
+          { role: 'minimize', label: '최소화' },
+          { role: 'close', label: '닫기' }
+        ]
+      }
+    ];
+
+    // Windows/Linux에서는 다른 메뉴 구조
+    if (process.platform !== 'darwin') {
+      template.unshift({
+        label: '파일',
+        submenu: [
+          { role: 'quit', label: '종료' }
+        ]
+      });
+    }
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+  }
+
+  private getAppIcon(): Electron.NativeImage {
+    // 기본 아이콘 (나중에 실제 아이콘으로 교체)
+    return nativeImage.createFromNamedImage('NSImageNameComputer');
+  }
+}
+
+// 앱 인스턴스 생성
+new WorkTrackerApp(); 
