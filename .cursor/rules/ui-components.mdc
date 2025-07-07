@@ -1,71 +1,164 @@
 ---
 globs: *.tsx,*.jsx
-description: React UI 컴포넌트 및 사용자 인터페이스 개발 가이드
+description: shadcn/ui 기반 React UI 컴포넌트 및 사용자 인터페이스 개발 가이드
 ---
 
-# React UI 컴포넌트 개발 가이드
+# shadcn/ui 기반 React UI 컴포넌트 개발 가이드
 
-## 핵심 컴포넌트 구조
+## shadcn/ui 컴포넌트 구조
 ```
-src/renderer/components/
-├── common/
-│   ├── Button.tsx           # 업무 시작/종료 버튼
-│   └── Modal.tsx            # 업무 기록 팝업
-├── work/
-│   ├── WorkTimer.tsx        # 업무 타이머
-│   ├── TaskInputModal.tsx   # 업무 내용 입력
-│   └── WorkSession.tsx      # 업무 세션 관리
-├── history/
-│   ├── DailyWorkList.tsx    # 일일 업무 리스트
-│   ├── Calendar.tsx         # 달력 UI
-│   └── WorkRecord.tsx       # 개별 업무 기록
-└── layout/
-    ├── Header.tsx           # 앱 헤더
-    └── Layout.tsx           # 전체 레이아웃
+src/renderer/
+├── components/
+│   ├── ui/                  # shadcn/ui 기본 컴포넌트들
+│   │   ├── button.tsx
+│   │   ├── dialog.tsx
+│   │   ├── input.tsx
+│   │   ├── card.tsx
+│   │   ├── calendar.tsx
+│   │   ├── badge.tsx
+│   │   └── separator.tsx
+│   ├── work/
+│   │   ├── work-timer.tsx        # 업무 타이머
+│   │   ├── task-input-dialog.tsx # 업무 내용 입력 다이얼로그
+│   │   └── work-session.tsx      # 업무 세션 관리
+│   ├── history/
+│   │   ├── daily-work-list.tsx   # 일일 업무 리스트
+│   │   ├── work-calendar.tsx     # 달력 UI
+│   │   └── work-record-card.tsx  # 개별 업무 기록 카드
+│   └── layout/
+│       ├── app-header.tsx        # 앱 헤더
+│       └── app-layout.tsx        # 전체 레이아웃
+├── lib/
+│   └── utils.ts             # shadcn/ui utils (cn 함수 등)
+└── styles/
+    └── globals.css          # Tailwind CSS 글로벌 스타일
 ```
 
-## UI/UX 설계 원칙
-- **단순함**: 최소한의 클릭으로 모든 기능 접근
-- **직관성**: 아이콘과 텍스트 조합으로 명확한 기능 표시
-- **반응성**: 모든 작업에 시각적 피드백 제공
-- **접근성**: 키보드 단축키 지원
+## shadcn/ui 사용 규칙
+- **컴포넌트 가져오기**: `npx shadcn-ui@latest add [component-name]` 사용
+- **기본 컴포넌트 확장**: shadcn/ui 컴포넌트를 베이스로 커스텀 컴포넌트 구축
+- **Tailwind CSS**: 모든 스타일링은 Tailwind utility classes 사용
+- **cn 함수**: 조건부 클래스명 결합에 `cn()` 유틸리티 함수 필수 사용
 
-## 컴포넌트 설계 규칙
-- 함수형 컴포넌트 + React Hooks 사용
-- TypeScript 인터페이스로 Props 타입 정의
-- 상태 관리는 Context API 또는 간단한 상태 사용
-- 재사용 가능한 컴포넌트 우선 설계
+## 필수 shadcn/ui 컴포넌트
+```bash
+# 초기 설정
+npx shadcn-ui@latest init
 
-## 업무 기록 팝업 요구사항
+# 필수 컴포넌트들
+npx shadcn-ui@latest add button
+npx shadcn-ui@latest add dialog
+npx shadcn-ui@latest add input
+npx shadcn-ui@latest add card
+npx shadcn-ui@latest add calendar
+npx shadcn-ui@latest add badge
+npx shadcn-ui@latest add separator
+npx shadcn-ui@latest add scroll-area
+npx shadcn-ui@latest add toast
+```
+
+## 컴포넌트 설계 패턴
 ```tsx
-interface TaskInputModalProps {
-  isOpen: boolean;
+// 예시: 업무 기록 다이얼로그
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+
+interface TaskInputDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSubmit: (task: string) => void;
   onSkip: () => void;
   screenshot?: string;
 }
 
+export function TaskInputDialog({ open, onOpenChange, onSubmit, onSkip }: TaskInputDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>지금 어떤 작업을 하고 있습니까?</DialogTitle>
+        </DialogHeader>
+        {/* 컴포넌트 내용 */}
+      </DialogContent>
+    </Dialog>
+  )
+}
+```
+
+## Tailwind CSS 스타일링 가이드
+- **색상 시스템**: CSS 변수 기반 테마 색상 사용
+- **간격**: Tailwind spacing scale 준수 (4px 단위)
+- **타이포그래피**: `text-sm`, `text-base`, `text-lg` 등 일관된 크기
+- **반응형**: `sm:`, `md:`, `lg:` breakpoints 활용
+- **다크모드**: `dark:` prefix로 다크모드 스타일 정의
+
+## 테마 및 다크모드
+```css
+/* globals.css */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+  }
+}
+```
+
+## 접근성 및 키보드 지원
+- **Radix UI 기반**: 모든 shadcn/ui 컴포넌트는 접근성 기본 지원
+- **키보드 네비게이션**: Tab, Enter, Escape 키 지원
+- **ARIA 속성**: 자동으로 적절한 ARIA 레이블 적용
+- **포커스 관리**: 다이얼로그 열기/닫기 시 포커스 자동 관리
+
+## 업무 기록 다이얼로그 요구사항
+```tsx
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+
 // 필수 기능
-// - 자동 포커스
-// - Enter키로 제출
-// - ESC키로 건너뛰기
-// - 제출 후 자동 닫힘
+// - 자동 포커스 (Input 컴포넌트의 autoFocus prop)
+// - Enter키로 제출 (onKeyDown 이벤트)
+// - ESC키로 건너뛰기 (Dialog의 기본 동작)
+// - 제출 후 자동 닫힘 (onOpenChange)
 ```
 
 ## 달력 UI 요구사항
-- 월별 뷰 기본 제공
-- 업무 기록이 있는 날짜는 시각적 표시
-- 날짜 클릭 시 해당일 업무 리스트 표시
-- 이전/다음 달 네비게이션
-
-## 스타일링 가이드
-- CSS Modules 또는 styled-components 사용
-- 일관된 색상 팔레트 정의
-- 반응형 디자인 (최소 1024x768 지원)
-- 다크모드 준비 (추후 확장용)
+- **shadcn/ui Calendar 컴포넌트** 사용
+- **date-fns** 라이브러리로 날짜 조작
+- **업무 기록 표시**: Calendar의 `modifiers` prop 활용
+- **커스텀 스타일**: Tailwind로 업무 있는 날짜 하이라이트
 
 ## 데이터 표시 형식
-- 시간: HH:mm 형식
-- 날짜: YYYY.MM.DD 형식
-- 업무 시간: "2시간 30분" 형식
-- 스크린샷: 썸네일 + 클릭시 확대
+- **시간**: `format(date, 'HH:mm')` (date-fns)
+- **날짜**: `format(date, 'yyyy.MM.dd')` (date-fns)
+- **업무 시간**: `${hours}시간 ${minutes}분` 형식
+- **스크린샷**: Card 컴포넌트로 썸네일 표시, Dialog로 확대
+
+## 상태 관리 패턴
+```tsx
+// Zustand 또는 Context API 사용
+import { create } from 'zustand'
+
+interface WorkStore {
+  isWorking: boolean;
+  currentTask: string;
+  workHistory: WorkRecord[];
+  startWork: () => void;
+  stopWork: () => void;
+  addWorkRecord: (record: WorkRecord) => void;
+}
+
+export const useWorkStore = create<WorkStore>((set) => ({
+  // store implementation
+}))
+```

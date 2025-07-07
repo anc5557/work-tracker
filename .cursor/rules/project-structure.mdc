@@ -35,3 +35,5 @@ work-tracker/
 - 로컬 데이터 저장 (JSON + 이미지 파일)
 - 단순하고 직관적인 UI/UX
 - TypeScript 엄격 모드 사용
+- **shadcn/ui + Tailwind CSS**: 일관된 디자인 시스템
+- **접근성 우선**: Radix UI 기반 컴포넌트로 웹 접근성 보장

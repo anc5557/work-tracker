@@ -9,6 +9,8 @@ description: 개발 워크플로우, 테스트 및 배포 가이드라인
 - TypeScript strict 모드 활성화
 - ESLint + Prettier 코드 포맷팅
 - VS Code 권장 확장 프로그램 설정
+- **shadcn/ui CLI**: 컴포넌트 자동 생성 도구
+- **Tailwind CSS IntelliSense**: VS Code 확장 프로그램 필수
 
 ## Git 커밋 규칙
 ```
@@ -49,7 +51,9 @@ docs: 문서 업데이트
     "build": "webpack --mode production",
     "test": "jest",
     "lint": "eslint src/",
-    "pack": "electron-builder"
+    "pack": "electron-builder",
+    "ui:add": "npx shadcn-ui@latest add",
+    "ui:init": "npx shadcn-ui@latest init"
   }
 }
 ```

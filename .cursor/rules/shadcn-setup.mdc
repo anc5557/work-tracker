@@ -1,0 +1,296 @@
+# shadcn/ui 설정 및 구성 가이드
+
+## 초기 설정 단계
+
+### 1. 필수 의존성 설치
+```bash
+# Tailwind CSS 및 관련 패키지
+npm install -D tailwindcss postcss autoprefixer
+npm install -D @tailwindcss/typography
+
+# shadcn/ui 의존성
+npm install class-variance-authority clsx tailwind-merge
+npm install lucide-react
+npm install @radix-ui/react-dialog @radix-ui/react-calendar
+npm install date-fns
+
+# 상태 관리 (선택사항)
+npm install zustand
+```
+
+### 2. Tailwind CSS 설정
+```javascript
+// tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: ["class"],
+  content: [
+    './src/renderer/**/*.{ts,tsx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: 0 },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: 0 },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+}
+```
+
+### 3. CSS 설정
+```css
+/* src/renderer/styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+ 
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+ 
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+ 
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+ 
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+ 
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+```
+
+### 4. utils 함수 설정
+```typescript
+// src/renderer/lib/utils.ts
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+ 
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+```
+
+### 5. components.json 설정
+```json
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "src/renderer/styles/globals.css",
+    "baseColor": "slate",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils"
+  }
+}
+```
+
+## Webpack 설정 (Electron 환경)
+
+### 경로 별칭 설정
+```javascript
+// webpack.config.js (renderer process)
+const path = require('path');
+
+module.exports = {
+  // ... 기존 설정
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src/renderer'),
+    },
+    extensions: ['.tsx', '.ts', '.js'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader', 'postcss-loader'],
+      },
+      // ... 기타 로더들
+    ],
+  },
+}
+```
+
+### PostCSS 설정
+```javascript
+// postcss.config.js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+```
+
+## TypeScript 경로 설정
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/renderer/*"]
+    }
+  }
+}
+```
+
+## 컴포넌트 추가 워크플로우
+```bash
+# 새 컴포넌트 추가
+npx shadcn-ui@latest add [component-name]
+
+# 예시: 토스트 컴포넌트 추가
+npx shadcn-ui@latest add toast
+
+# 사용법
+import { useToast } from "@/components/ui/use-toast"
+```
+
+## 커스텀 테마 색상 (업무 자동화 서비스용)
+```css
+:root {
+  /* 업무 관련 색상 */
+  --work-active: 142 76% 36%;      /* 업무 중: 초록색 */
+  --work-paused: 45 93% 47%;       /* 일시정지: 노란색 */
+  --work-completed: 142 71% 45%;   /* 완료: 진한 초록색 */
+  
+  /* 시간대별 색상 */
+  --morning: 200 98% 39%;          /* 오전: 파란색 */
+  --afternoon: 45 93% 47%;         /* 오후: 노란색 */
+  --evening: 262 83% 58%;          /* 저녁: 보라색 */
+}
+```
+
+## 성능 최적화
+- **Tree Shaking**: 사용하지 않는 Tailwind 클래스 자동 제거
+- **PurgeCSS**: 프로덕션 빌드에서 미사용 CSS 제거
+- **컴포넌트 Lazy Loading**: React.lazy()로 큰 컴포넌트 지연 로딩
+description:
+globs:
+alwaysApply: false
+---
