@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, nativeImage } from 'electron';
+import { app, BrowserWindow, Menu, Tray, nativeImage, session } from 'electron';
 import { join } from 'path';
 import { IpcHandlers } from './ipc/handlers';
 
@@ -30,6 +30,7 @@ class WorkTrackerApp {
     });
 
     app.whenReady().then(() => {
+      this.setupContentSecurityPolicy();
       this.createMainWindow();
       this.createTray();
       this.createMenu();
@@ -40,6 +41,24 @@ class WorkTrackerApp {
       if (this.tray) {
         this.tray.destroy();
       }
+    });
+  }
+
+  private setupContentSecurityPolicy(): void {
+    const isDev = process.env.NODE_ENV === 'development';
+    
+    // 개발 환경에서는 HMR과 eval을 위해 더 완화된 CSP 사용
+    const cspHeader = isDev 
+      ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*; style-src 'self' 'unsafe-inline' http://localhost:*; img-src 'self' data: file: http://localhost:*; connect-src 'self' http://localhost:* ws://localhost:*;"
+      : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; connect-src 'self';";
+
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [cspHeader]
+        }
+      });
     });
   }
 
@@ -55,15 +74,21 @@ class WorkTrackerApp {
         nodeIntegration: false,
         contextIsolation: true,
         preload: join(__dirname, '../preload/preload.js'),
-        webSecurity: true
+        webSecurity: true,
+        // CSP 설정
+        experimentalFeatures: false
       },
       show: false, // 로딩 완료 후 보이기
       icon: this.getAppIcon()
     });
 
     // 개발 환경에서는 webpack-dev-server 주소, 프로덕션에서는 빌드된 파일
-    const isDev = process.env.NODE_ENV === 'development';
-    if (isDev) {
+    // app.isPackaged는 앱이 패키징되었는지 확인 (개발 시 false, 패키징 시 true)
+    // 하지만 여기서는 webpack dev server의 존재로 개발/프로덕션을 구분
+    const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev');
+    const isDevServer = !app.isPackaged && !process.argv.includes('--prod');
+    
+    if (isDev && isDevServer) {
       this.mainWindow.loadURL('http://localhost:3000');
       this.mainWindow.webContents.openDevTools();
     } else {
