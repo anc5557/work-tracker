@@ -1,0 +1,81 @@
+---
+description: 개발 워크플로우, 테스트 및 배포 가이드라인
+---
+
+# 개발 워크플로우 및 테스트 규칙
+
+## 개발 환경 설정
+- Node.js 18+ 버전 사용
+- TypeScript strict 모드 활성화
+- ESLint + Prettier 코드 포맷팅
+- VS Code 권장 확장 프로그램 설정
+
+## Git 커밋 규칙
+```
+feat: 새로운 기능 추가
+fix: 버그 수정
+refactor: 코드 리팩토링
+style: 스타일 변경
+test: 테스트 추가/수정
+docs: 문서 업데이트
+```
+
+## 브랜치 전략
+- `main`: 안정 버전
+- `develop`: 개발 중인 기능들
+- `feature/*`: 개별 기능 개발
+- `hotfix/*`: 긴급 버그 수정
+
+## 테스트 전략
+```typescript
+// 단위 테스트 필수 항목
+// - 스크린샷 캡처 함수
+// - 데이터 저장/로드 함수
+// - 시간 계산 로직
+// - 파일 경로 생성 함수
+
+// 통합 테스트 필수 항목
+// - Main-Renderer IPC 통신
+// - 파일 시스템 작업
+// - 권한 요청 플로우
+```
+
+## 빌드 및 배포
+```json
+// package.json scripts 예시
+{
+  "scripts": {
+    "dev": "electron .",
+    "build": "webpack --mode production",
+    "test": "jest",
+    "lint": "eslint src/",
+    "pack": "electron-builder"
+  }
+}
+```
+
+## 코드 품질 체크리스트
+- [ ] TypeScript 컴파일 에러 없음
+- [ ] ESLint 규칙 통과
+- [ ] 단위 테스트 통과율 80% 이상
+- [ ] 메모리 누수 검사
+- [ ] macOS 권한 테스트
+
+## 성능 모니터링
+- Electron 메인/렌더러 프로세스 메모리 사용량
+- 스크린샷 캡처 시간 측정
+- 파일 I/O 성능 체크
+- UI 렌더링 성능 측정
+
+## 배포 전 체크리스트
+- [ ] 모든 테스트 통과
+- [ ] macOS 코드 사이닝
+- [ ] 앱 아이콘 및 메타데이터 설정
+- [ ] 설치 프로그램 테스트
+- [ ] 업데이트 메커니즘 검증
+
+## 문제 해결 가이드
+- Electron 권한 문제: Info.plist 설정 확인
+- React 핫 리로드 이슈: webpack devServer 설정
+- TypeScript 빌드 실패: tsconfig.json 경로 확인
+- IPC 통신 오류: contextIsolation 설정 검토

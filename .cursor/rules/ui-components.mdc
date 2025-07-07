@@ -1,0 +1,71 @@
+---
+globs: *.tsx,*.jsx
+description: React UI 컴포넌트 및 사용자 인터페이스 개발 가이드
+---
+
+# React UI 컴포넌트 개발 가이드
+
+## 핵심 컴포넌트 구조
+```
+src/renderer/components/
+├── common/
+│   ├── Button.tsx           # 업무 시작/종료 버튼
+│   └── Modal.tsx            # 업무 기록 팝업
+├── work/
+│   ├── WorkTimer.tsx        # 업무 타이머
+│   ├── TaskInputModal.tsx   # 업무 내용 입력
+│   └── WorkSession.tsx      # 업무 세션 관리
+├── history/
+│   ├── DailyWorkList.tsx    # 일일 업무 리스트
+│   ├── Calendar.tsx         # 달력 UI
+│   └── WorkRecord.tsx       # 개별 업무 기록
+└── layout/
+    ├── Header.tsx           # 앱 헤더
+    └── Layout.tsx           # 전체 레이아웃
+```
+
+## UI/UX 설계 원칙
+- **단순함**: 최소한의 클릭으로 모든 기능 접근
+- **직관성**: 아이콘과 텍스트 조합으로 명확한 기능 표시
+- **반응성**: 모든 작업에 시각적 피드백 제공
+- **접근성**: 키보드 단축키 지원
+
+## 컴포넌트 설계 규칙
+- 함수형 컴포넌트 + React Hooks 사용
+- TypeScript 인터페이스로 Props 타입 정의
+- 상태 관리는 Context API 또는 간단한 상태 사용
+- 재사용 가능한 컴포넌트 우선 설계
+
+## 업무 기록 팝업 요구사항
+```tsx
+interface TaskInputModalProps {
+  isOpen: boolean;
+  onSubmit: (task: string) => void;
+  onSkip: () => void;
+  screenshot?: string;
+}
+
+// 필수 기능
+// - 자동 포커스
+// - Enter키로 제출
+// - ESC키로 건너뛰기
+// - 제출 후 자동 닫힘
+```
+
+## 달력 UI 요구사항
+- 월별 뷰 기본 제공
+- 업무 기록이 있는 날짜는 시각적 표시
+- 날짜 클릭 시 해당일 업무 리스트 표시
+- 이전/다음 달 네비게이션
+
+## 스타일링 가이드
+- CSS Modules 또는 styled-components 사용
+- 일관된 색상 팔레트 정의
+- 반응형 디자인 (최소 1024x768 지원)
+- 다크모드 준비 (추후 확장용)
+
+## 데이터 표시 형식
+- 시간: HH:mm 형식
+- 날짜: YYYY.MM.DD 형식
+- 업무 시간: "2시간 30분" 형식
+- 스크린샷: 썸네일 + 클릭시 확대

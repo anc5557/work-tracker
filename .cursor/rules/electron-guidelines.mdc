@@ -1,0 +1,46 @@
+---
+globs: *.ts,*.tsx
+description: Electron 메인 프로세스 및 렌더러 프로세스 개발 가이드라인
+---
+
+# Electron 개발 가이드라인
+
+## Main Process 개발 규칙
+- **파일 위치**: [src/main](mdc:src/main) 디렉토리
+- **주요 책임**: 
+  - 스크린샷 캡처 (desktopCapturer API)
+  - macOS 시스템 권한 관리
+  - 파일 시스템 작업 (이미지/JSON 저장)
+  - IPC 통신 관리
+
+## 스크린 캡처 권한 처리
+```typescript
+// macOS 스크린 녹화 권한 확인 및 요청 필수
+import { systemPreferences } from 'electron';
+
+const hasScreenAccess = systemPreferences.getMediaAccessStatus('screen');
+if (hasScreenAccess !== 'granted') {
+  // 권한 요청 로직 구현
+}
+```
+
+## IPC 통신 패턴
+- **Main → Renderer**: `webContents.send()`
+- **Renderer → Main**: `ipcRenderer.invoke()`
+- 채널명 규칙: `기능:동작` (예: `screenshot:capture`, `record:save`)
+
+## 보안 규칙
+- `nodeIntegration: false` 설정
+- `contextIsolation: true` 활성화
+- preload 스크립트 사용 필수
+- 렌더러에서 직접 Node.js API 접근 금지
+
+## 파일 저장 규칙
+- 스크린샷: `data/screenshots/YYYY-MM-DD/` 구조
+- 업무 기록: `data/records/YYYY-MM-DD.json` 형태
+- 파일명 규칙: `HH-mm-ss.png` (스크린샷)
+
+## 에러 처리
+- 권한 거부 시 사용자 친화적 안내 메시지
+- 파일 저장 실패 시 재시도 로직
+- 모든 비동기 작업에 try-catch 필수

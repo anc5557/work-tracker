@@ -1,0 +1,57 @@
+---
+description: 자동 스크린샷 캡처 및 업무 기록 기능 구현 가이드
+---
+
+# 스크린샷 캡처 및 업무 기록 시스템
+
+## 자동 캡처 로직
+- **캡처 간격**: 5-10분 (사용자 설정 가능)
+- **트리거**: "업무 시작" 버튼 클릭 후 시작
+- **종료**: "업무 종료" 버튼 클릭 시 정지
+
+## 캡처 구현 요구사항
+```typescript
+// desktopCapturer 사용 예시
+import { desktopCapturer, screen } from 'electron';
+
+const captureScreen = async () => {
+  const sources = await desktopCapturer.getSources({
+    types: ['screen'],
+    thumbnailSize: screen.getPrimaryDisplay().workAreaSize
+  });
+  // 전체 화면 캡처 로직
+};
+```
+
+## 업무 기록 팝업 규칙
+- **표시 시점**: 스크린샷 캡처 직후
+- **질문**: "지금 어떤 작업을 하고 있습니까?"
+- **입력 형태**: 텍스트 입력 (최대 200자)
+- **팝업 위치**: 화면 중앙, 항상 최상단
+
+## 데이터 저장 형식
+```json
+// data/records/YYYY-MM-DD.json
+{
+  "date": "2024-01-15",
+  "records": [
+    {
+      "timestamp": "2024-01-15T09:15:00Z",
+      "screenshot": "screenshots/2024-01-15/09-15-00.png",
+      "task_description": "회의 자료 준비",
+      "duration": 600 // 초 단위
+    }
+  ]
+}
+```
+
+## 파일 관리 규칙
+- 스크린샷 자동 압축 (품질 80%)
+- 일일 단위 폴더 구조 유지
+- 30일 이상 된 데이터 자동 아카이브 옵션
+- 디스크 용량 확인 후 캡처 실행
+
+## 성능 최적화
+- 백그라운드에서 비동기 캡처
+- 메모리 사용량 모니터링
+- 캡처 실패 시 재시도 (최대 3회)

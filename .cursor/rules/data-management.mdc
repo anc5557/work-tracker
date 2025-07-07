@@ -1,0 +1,82 @@
+---
+description: 로컬 데이터 저장, 관리 및 백업 규칙
+---
+
+# 데이터 관리 및 저장 규칙
+
+## 로컬 저장소 구조
+```
+data/
+├── records/
+│   ├── 2024-01-15.json      # 일별 업무 기록
+│   ├── 2024-01-16.json
+│   └── settings.json         # 앱 설정
+└── screenshots/
+    ├── 2024-01-15/
+    │   ├── 09-15-00.png
+    │   └── 09-25-00.png
+    └── 2024-01-16/
+```
+
+## JSON 데이터 스키마
+```typescript
+// 일일 업무 기록 타입
+interface DailyRecord {
+  date: string;                    // YYYY-MM-DD
+  start_time?: string;             // 업무 시작 시간
+  end_time?: string;               // 업무 종료 시간
+  total_duration: number;          // 총 업무 시간 (분)
+  records: WorkRecord[];
+}
+
+interface WorkRecord {
+  id: string;                      // 고유 ID
+  timestamp: string;               // ISO 8601 형식
+  screenshot_path: string;         // 상대 경로
+  task_description: string;        // 업무 내용
+  tags?: string[];                 // 태그 (추후 확장)
+}
+
+// 앱 설정 타입
+interface AppSettings {
+  capture_interval: number;        // 캡처 간격 (분)
+  auto_save: boolean;              // 자동 저장 여부
+  screenshot_quality: number;      // 이미지 품질 (1-100)
+  data_retention_days: number;     // 데이터 보관 기간
+}
+```
+
+## 파일 작업 규칙
+- 모든 파일 I/O는 비동기 처리
+- JSON 파일 읽기/쓰기 전 유효성 검사
+- 파일 저장 실패 시 임시 백업 생성
+- 앱 종료 시 모든 데이터 자동 저장
+
+## 데이터 무결성 보장
+```typescript
+// 데이터 검증 함수 예시
+const validateDailyRecord = (record: DailyRecord): boolean => {
+  // 필수 필드 확인
+  // 날짜 형식 검증
+  // 타임스탬프 순서 검증
+  return true;
+};
+```
+
+## 백업 및 복구
+- 매일 자동 백업 생성 (JSON 파일)
+- 스크린샷은 원본 유지
+- 손상된 데이터 검출 시 이전 백업 복구
+- 수동 내보내기/가져오기 기능 제공
+
+## 성능 최적화
+- 대용량 JSON 파일 스트리밍 처리
+- 스크린샷 lazy loading
+- 인덱스 캐싱으로 빠른 검색
+- 메모리 사용량 모니터링
+
+## 데이터 프라이버시
+- 모든 데이터는 로컬 저장만
+- 네트워크 전송 없음
+- 민감 정보 자동 마스킹 옵션
+- 사용자 동의 없는 데이터 수집 금지
