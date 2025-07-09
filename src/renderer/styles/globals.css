@@ -59,6 +59,35 @@
   }
 }
 
+/* Electron 윈도우 드래그 영역 설정 */
+.app-dragable {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* 헤더는 드래그 가능 */
+.app-header {
+  -webkit-app-region: drag;
+}
+
+/* 사이드바는 드래그 불가 */
+.app-sidebar {
+  -webkit-app-region: no-drag;
+}
+
+/* 메인 콘텐츠는 드래그 불가 */
+.app-main-content {
+  -webkit-app-region: no-drag;
+}
+
+/* 버튼과 상호작용 요소들은 드래그 불가 */
+button, a, input, textarea, select, [role="button"] {
+  -webkit-app-region: no-drag !important;
+}
+
 /* Work Tracker 특화 스타일 */
 .work-record-card {
   @apply bg-card text-card-foreground rounded-lg border shadow-sm p-4 space-y-3 transition-all hover:shadow-md;

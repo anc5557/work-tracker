@@ -98,7 +98,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* 모바일 오버레이 */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden app-no-drag"
           onClick={closeSidebar}
         />
       )}
@@ -107,7 +107,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <aside 
         ref={sidebarRef}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 bg-gray-800 border-r border-gray-700 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+          "fixed inset-y-0 left-0 z-50 bg-gray-800 border-r border-gray-700 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 app-sidebar",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
           sidebarCollapsed ? "w-20" : ""
         )}
@@ -233,7 +233,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* 리사이즈 핸들 - 데스크톱에서만 표시하고 접힌 상태가 아닐 때만 */}
         {!sidebarCollapsed && (
           <div
-            className="absolute top-0 right-0 w-1 h-full cursor-ew-resize bg-transparent hover:bg-blue-500/30 transition-colors duration-200 hidden lg:block group"
+            className="absolute top-0 right-0 w-1 h-full cursor-ew-resize bg-transparent hover:bg-blue-500/30 transition-colors duration-200 hidden lg:block group app-no-drag"
             onMouseDown={handleMouseDown}
             title="드래그해서 사이드바 크기 조정"
           >
@@ -246,13 +246,13 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* 메인 콘텐츠 영역 */}
       <div className="flex-1 flex flex-col">
         {/* 간소화된 헤더 (모바일 메뉴 버튼 포함) */}
-        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 lg:px-6 lg:py-4">
+        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 lg:px-6 lg:py-4 app-header">
           <div className="flex items-center justify-between">
             {/* 모바일 메뉴 버튼 */}
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden text-gray-300 hover:text-white"
+              className="lg:hidden text-gray-300 hover:text-white app-no-drag"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="w-5 h-5" />
@@ -266,14 +266,14 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
 
             {/* 우측 액션 버튼들 (필요시 추가) */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 app-no-drag">
               {/* 추후 알림, 설정 등 버튼 추가 가능 */}
             </div>
           </div>
         </header>
 
         {/* 페이지 콘텐츠 */}
-        <main className="flex-1 p-6 bg-gray-900">
+        <main className="flex-1 p-6 bg-gray-900 app-main-content">
           {children}
         </main>
       </div>
