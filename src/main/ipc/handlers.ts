@@ -255,9 +255,8 @@ export class IpcHandlers {
     // 세션별 스크린샷 조회
     ipcMain.handle('get-session-screenshots', async (_, data: { sessionId: string }) => {
       try {
-        // TODO: 실제 스크린샷 조회 로직 구현
-        // 현재는 더미 데이터 반환
-        return { success: true, data: [] };
+        const screenshots = await this.dataService.getSessionScreenshots(data.sessionId);
+        return { success: true, data: screenshots };
       } catch (error) {
         console.error('Failed to get session screenshots:', error);
         return { success: false, error: (error as Error).message };

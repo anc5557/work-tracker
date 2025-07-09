@@ -1,7 +1,7 @@
 
 # Work Tracker 프로젝트 TODO 가이드
 
-## 📊 현재 구현 상태 (80-85% 완료)
+## 📊 현재 구현 상태 (90-95% 완료)
 
 ### ✅ 완료된 핵심 기능
 - **Electron Main Process**: [src/main/index.ts](mdc:src/main/index.ts) - 윈도우, 트레이, 메뉴 완성
@@ -10,6 +10,7 @@
 - **IPC 통신**: [src/main/ipc/handlers.ts](mdc:src/main/ipc/handlers.ts) - 완전 구현 (편집/삭제 기능 포함)
 - **기본 UI**: [src/renderer/components/pages/dashboard.tsx](mdc:src/renderer/components/pages/dashboard.tsx) - 타이머 및 업무 시작/종료 완료
 - **Work Record Card**: [src/renderer/components/history/work-record-card.tsx](mdc:src/renderer/components/history/work-record-card.tsx) - 완전 구현 완료 ✨
+- **App Layout & Navigation**: [src/renderer/components/layout/app-layout.tsx](mdc:src/renderer/components/layout/app-layout.tsx) - 완전 구현 완료 ✨
 
 ## 🎯 구현 우선순위 TODO
 
@@ -27,27 +28,33 @@
 - ✅ 편집/삭제 다이얼로그 구현
 - ✅ IPC 통신 연동 (편집/삭제 기능)
 
-#### B. App Layout 네비게이션 구현 ⚠️ 미완성 (다음 우선순위)
+#### ✅ B. App Layout 네비게이션 구현 - **완료!**
 **파일**: [src/renderer/components/layout/app-layout.tsx](mdc:src/renderer/components/layout/app-layout.tsx)
-**상태**: 기본 구조만 존재
-**구현 내용**:
-- 사이드바 네비게이션 메뉴
-- 페이지 전환 로직
-- 현재 활성 페이지 하이라이트
-- 반응형 레이아웃
-- 헤더 컴포넌트 통합
+**상태**: ✅ 완전 구현 완료
+**완료된 기능**:
+- ✅ 사이드바 네비게이션 메뉴
+- ✅ 페이지 전환 로직 및 현재 활성 페이지 하이라이트
+- ✅ 반응형 레이아웃 (모바일 햄버거 메뉴)
+- ✅ 사이드바 접기/펼치기 기능 (아이콘 모드)
+- ✅ 드래그 리사이즈 기능 (200px-400px 범위)
+- ✅ 툴팁 및 시각적 피드백
+- ✅ 부드러운 애니메이션 및 전환 효과
 
 ### 2순위 (High) - 사용성 향상
 
-#### C. Session Details 페이지 구현 ❌ 미구현
+#### ✅ C. Session Details 페이지 구현 - **완료!**
 **파일**: [src/renderer/components/pages/session-details.tsx](mdc:src/renderer/components/pages/session-details.tsx)
-**상태**: 기본 구조만 존재, 실제 기능 없음
-**구현 내용**:
-- URL 파라미터로 세션 ID 받기
-- 특정 세션의 상세 정보 로드
-- 스크린샷 갤러리 표시
-- 시간 흐름별 활동 타임라인
-- 세션 편집 기능
+**상태**: ✅ 완전 구현 완료
+**완료된 기능**:
+- ✅ URL 파라미터로 세션 ID 받기
+- ✅ 특정 세션의 상세 정보 로드 및 표시
+- ✅ 스크린샷 갤러리 표시 (시간순 정렬, 미리보기)
+- ✅ 시간 흐름별 활동 타임라인 (세션 시작/스크린샷/종료)
+- ✅ 세션 편집 기능 (제목, 설명 인라인 편집)
+- ✅ 스크린샷 액션 (큰 이미지 보기, 외부 앱 열기, 폴더 보기)
+- ✅ 네비게이션 및 상태 관리
+- ✅ 로딩/에러 처리 및 토스트 알림
+- ✅ 반응형 디자인 및 접근성
 
 #### D. 자동 스크린샷 캡처 시스템 ❌ 미구현
 **관련 파일**: 
@@ -101,14 +108,18 @@
 ## 🛠 구현 가이드
 
 ### 📋 다음에 구현할 기능 권장 순서:
-1. **App Layout 네비게이션** (1순위 B) - 사용자 경험 향상의 핵심
-2. **자동 스크린샷 캡처** (2순위 D) - 핵심 기능 완성
-3. **Session Details** (2순위 C) - Work Record Card와 연동하여 상세 정보 제공
+1. **자동 스크린샷 캡처** (2순위 D) - 핵심 기능 완성 (최우선)
+2. **Settings 실제 로직** (3순위 E) - 사용자 설정 기능 완성
+3. **Reports 통계 계산 로직** (3순위 F) - 실제 데이터 기반 통계
 
 ### 🎉 최근 완료 사항 (2024.1):
+- ✅ **Session Details 페이지** - 세션 상세 정보, 스크린샷 갤러리, 타임라인, 편집 기능 완성
+- ✅ **세션별 스크린샷 조회** - 데이터 서비스 및 IPC 핸들러 구현
 - ✅ **Work Record Card 컴포넌트** - 편집/삭제 기능, 세션 상세 이동, 다이얼로그 UI 완성
-- ✅ **IPC 핸들러 확장** - delete-work-record 기능 추가
+- ✅ **App Layout 네비게이션** - 사이드바, 반응형, 접기/펼치기, 드래그 리사이즈 완성
+- ✅ **IPC 핸들러 확장** - delete-work-record, get-session-screenshots 기능 추가
 - ✅ **데이터 연동** - 실시간 편집/삭제 기능
+- ✅ **사이드바 고급 기능** - 접기/펼치기, 드래그 리사이즈, 툴팁, 애니메이션
 
 ### 공통 구현 원칙:
 - shadcn/ui 컴포넌트 사용

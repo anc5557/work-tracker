@@ -260,4 +260,81 @@ export class DataService {
       };
     }
   }
+
+  /**
+   * 세션별 스크린샷을 조회합니다.
+   */
+  async getSessionScreenshots(sessionId: string): Promise<Array<{
+    id: string;
+    filename: string;
+    path: string;
+    timestamp: string;
+  }>> {
+    try {
+      // 최근 7일 동안의 기록에서 해당 세션을 찾기
+      const today = new Date();
+      let session: WorkRecord | null = null;
+      
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        const dateString = date.toISOString().split('T')[0];
+        
+        const dayData = await this.getWorkRecords(dateString);
+        if (dayData) {
+          const record = dayData.records.find(r => r.id === sessionId);
+          if (record) {
+            session = record;
+            break;
+          }
+        }
+      }
+      
+      if (!session) {
+        return [];
+      }
+
+      // 스크린샷 디렉토리 경로
+      const screenshotsDir = join(this.dataPath, 'screenshots');
+      
+      if (!existsSync(screenshotsDir)) {
+        return [];
+      }
+
+      // 세션 시간 범위 계산
+      const sessionStart = new Date(session.startTime);
+      const sessionEnd = session.endTime ? new Date(session.endTime) : new Date();
+      
+      // 스크린샷 파일들 조회
+      const files = await readdir(screenshotsDir);
+      const screenshots = [];
+      
+      for (const file of files) {
+        if (!file.endsWith('.png')) continue;
+        
+        const filePath = join(screenshotsDir, file);
+        const stats = await stat(filePath);
+        const fileTime = stats.mtime;
+        
+        // 세션 시간 범위에 포함되는 스크린샷만 선택
+        if (fileTime >= sessionStart && fileTime <= sessionEnd) {
+          screenshots.push({
+            id: file.replace('.png', ''),
+            filename: file,
+            path: filePath,
+            timestamp: fileTime.toISOString()
+          });
+        }
+      }
+      
+      // 시간순 정렬
+      screenshots.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      
+      return screenshots;
+
+    } catch (error) {
+      console.error('Failed to get session screenshots:', error);
+      return [];
+    }
+  }
 } 
