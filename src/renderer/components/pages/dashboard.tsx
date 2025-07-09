@@ -132,7 +132,7 @@ export function Dashboard() {
   const time = formatTime(elapsedTime);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
+    <div className="text-white space-y-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Current Session */}
         <div className="text-center space-y-6">

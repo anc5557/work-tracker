@@ -206,7 +206,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </aside>
 
       {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 flex flex-col lg:ml-0">
+      <div className="flex-1 flex flex-col">
         {/* 간소화된 헤더 (모바일 메뉴 버튼 포함) */}
         <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 lg:px-6 lg:py-4">
           <div className="flex items-center justify-between">
@@ -235,7 +235,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </header>
 
         {/* 페이지 콘텐츠 */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 bg-gray-900">
           {children}
         </main>
       </div>
