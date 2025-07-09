@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -6,64 +6,13 @@ import { TaskInputDialog } from './task-input-dialog';
 import { useToast } from '../../hooks/use-toast';
 import { formatDuration } from '../../lib/utils';
 import { Play, Square, Camera, Clock, Zap, Target } from 'lucide-react';
+import { useSession } from '../../contexts/session-context';
 import type { WorkRecord } from '../../../shared/types';
 
 export function WorkTimer() {
-  const [isWorking, setIsWorking] = useState(false);
-  const [currentRecord, setCurrentRecord] = useState<WorkRecord | null>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const { toast } = useToast();
-
-  // 컴포넌트 마운트시 진행 중인 세션 복원
-  useEffect(() => {
-    const restoreActiveSession = async () => {
-      try {
-        const result = await window.electronAPI.invoke('get-active-session');
-        
-        if (result.success && result.data) {
-          const activeSession = result.data;
-          console.log('Active session found:', activeSession);
-          
-          setCurrentRecord(activeSession);
-          setIsWorking(true);
-          
-          // 경과 시간 계산
-          const now = new Date().getTime();
-          const start = new Date(activeSession.startTime).getTime();
-          setElapsedTime(now - start);
-          
-          toast({
-            title: "세션 복원",
-            description: `"${activeSession.title}" 작업이 복원되었습니다.`,
-          });
-        }
-      } catch (error) {
-        console.error('Failed to restore active session:', error);
-      }
-    };
-
-    restoreActiveSession();
-  }, []); // 컴포넌트 마운트시에만 실행
-
-  // 경과 시간 업데이트
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isWorking && currentRecord) {
-      interval = setInterval(() => {
-        const now = new Date().getTime();
-        const start = new Date(currentRecord.startTime).getTime();
-        setElapsedTime(now - start);
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [isWorking, currentRecord]);
+  const { isWorking, currentRecord, elapsedTime, startSession, stopSession, restoreSession } = useSession();
 
   const handleStartWork = async () => {
     // 이미 진행 중인 세션이 있는지 확인
@@ -87,13 +36,7 @@ export function WorkTimer() {
         });
         
         // 세션 복원
-        const activeSession = result.data;
-        setCurrentRecord(activeSession);
-        setIsWorking(true);
-        
-        const now = new Date().getTime();
-        const start = new Date(activeSession.startTime).getTime();
-        setElapsedTime(now - start);
+        await restoreSession();
         return;
       }
     } catch (error) {
@@ -108,9 +51,7 @@ export function WorkTimer() {
       const result = await window.electronAPI.invoke('start-work', { title, description });
       
       if (result.success) {
-        setCurrentRecord(result.data);
-        setIsWorking(true);
-        setElapsedTime(0);
+        startSession(result.data);
         setShowTaskDialog(false);
         
         toast({
@@ -142,9 +83,7 @@ export function WorkTimer() {
       });
       
       if (result.success) {
-        setCurrentRecord(result.data);
-        setIsWorking(true);
-        setElapsedTime(0);
+        startSession(result.data);
         setShowTaskDialog(false);
         
         toast({
@@ -169,9 +108,7 @@ export function WorkTimer() {
       const result = await window.electronAPI.invoke('stop-work', { id: currentRecord.id });
       
       if (result.success) {
-        setIsWorking(false);
-        setCurrentRecord(null);
-        setElapsedTime(0);
+        stopSession();
         
         toast({
           title: "업무 완료",

@@ -2,6 +2,8 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { useSession } from '../../contexts/session-context';
+import { formatDuration } from '../../lib/utils';
 import { 
   Home, 
   Calendar, 
@@ -9,11 +11,14 @@ import {
   Settings, 
   Bell,
   HelpCircle,
-  User 
+  User,
+  Play,
+  Clock
 } from 'lucide-react';
 
 export function AppHeader() {
   const location = useLocation();
+  const { isWorking, currentRecord, elapsedTime } = useSession();
   
   const isActive = (path: string) => location.pathname === path;
   
@@ -57,6 +62,26 @@ export function AppHeader() {
         
         {/* 우측 메뉴 */}
         <div className="flex items-center space-x-4">
+          {/* 세션 상태 표시기 */}
+          {isWorking && currentRecord && (
+            <div className="flex items-center space-x-2 bg-green-900/30 border border-green-700/50 rounded-md px-3 py-1.5">
+              <div className="flex items-center space-x-1">
+                <Play className="w-3 h-3 text-green-400 animate-pulse" />
+                <span className="text-green-300 text-xs font-medium">진행 중</span>
+              </div>
+              <div className="w-px h-4 bg-green-700/50" />
+              <div className="flex items-center space-x-1">
+                <Clock className="w-3 h-3 text-green-400" />
+                <span className="text-green-300 text-xs font-mono">
+                  {formatDuration(elapsedTime)}
+                </span>
+              </div>
+              <div className="max-w-24 truncate text-green-200 text-xs">
+                {currentRecord.title}
+              </div>
+            </div>
+          )}
+          
           <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
             <HelpCircle className="w-4 h-4" />
           </Button>
