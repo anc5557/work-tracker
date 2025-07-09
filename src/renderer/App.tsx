@@ -10,20 +10,18 @@ import { Toaster } from './components/ui/toaster';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Router>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/session/:sessionId" element={<SessionDetails />} />
-          </Routes>
-        </AppLayout>
-        <Toaster />
-      </Router>
-    </div>
+    <Router>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/session/:sessionId" element={<SessionDetails />} />
+        </Routes>
+      </AppLayout>
+      <Toaster />
+    </Router>
   );
 }
 
