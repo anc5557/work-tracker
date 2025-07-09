@@ -322,7 +322,7 @@ export function SessionDetails() {
                   className="text-lg font-medium"
                 />
               ) : (
-                <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
+                <div className="pl-1">
                   <h2 className="text-lg font-semibold text-foreground">{session.title}</h2>
                 </div>
               )}
@@ -339,9 +339,11 @@ export function SessionDetails() {
                   className="w-full min-h-[100px] px-3 py-2 text-sm border border-input bg-background rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 />
               ) : (
-                <div className="p-4 bg-muted/30 rounded-lg border border-border/50 min-h-[60px] flex items-center">
-                  <p className="text-muted-foreground leading-relaxed">
-                    {session.description || '업무 내용 미입력'}
+                <div className="pl-1 min-h-[60px] flex items-start py-2">
+                  <p className="text-foreground leading-relaxed">
+                    {session.description || (
+                      <span className="text-muted-foreground italic">업무 내용 미입력</span>
+                    )}
                   </p>
                 </div>
               )}
