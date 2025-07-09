@@ -22,14 +22,54 @@ export function DailyWorkList() {
       const result = await window.electronAPI.invoke('get-work-records', { date });
       
       if (result.success) {
-        setTodayData(result.data);
+        // result.data가 배열인 경우 DayWorkSummary 구조로 변환
+        if (Array.isArray(result.data)) {
+          const records = result.data;
+          const totalDuration = records.reduce((total: number, record: WorkRecord) => {
+            return total + (record.duration || 0);
+          }, 0);
+          
+          setTodayData({
+            date,
+            records,
+            totalDuration,
+            totalRecords: records.length
+          });
+        } else if (result.data && typeof result.data === 'object') {
+          // 이미 DayWorkSummary 구조인 경우
+          const data = result.data;
+          setTodayData({
+            date: data.date || date,
+            records: data.records || [],
+            totalDuration: data.totalDuration || 0,
+            totalRecords: data.totalRecords || (data.records ? data.records.length : 0)
+          });
+        } else {
+          // 데이터가 없는 경우
+          setTodayData({
+            date,
+            records: [],
+            totalDuration: 0,
+            totalRecords: 0
+          });
+        }
       } else {
         console.error('Failed to load work records:', result.error);
-        setTodayData(null);
+        setTodayData({
+          date,
+          records: [],
+          totalDuration: 0,
+          totalRecords: 0
+        });
       }
     } catch (error) {
       console.error('Failed to load work records:', error);
-      setTodayData(null);
+      setTodayData({
+        date,
+        records: [],
+        totalDuration: 0,
+        totalRecords: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -143,7 +183,7 @@ export function DailyWorkList() {
             </div>
             <div className="text-muted-foreground">데이터를 불러오는 중...</div>
           </div>
-        ) : todayData && todayData.records.length > 0 ? (
+        ) : todayData && todayData.records && todayData.records.length > 0 ? (
           <div className="space-y-4">
             {/* 요약 통계 */}
             <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50/80 dark:bg-gray-700/30 rounded-xl border border-gray-200/50 dark:border-gray-600/50">
@@ -159,18 +199,18 @@ export function DailyWorkList() {
                 </div>
                 <div className="text-xs text-muted-foreground">총 시간</div>
               </div>
-                             <div className="text-center">
-                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                   {todayData.records.filter(r => r.screenshotPath).length}
-                 </div>
-                 <div className="text-xs text-muted-foreground">스크린샷</div>
-               </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  {todayData?.records?.filter((r: WorkRecord) => r.screenshotPath)?.length || 0}
+                </div>
+                <div className="text-xs text-muted-foreground">스크린샷</div>
+              </div>
             </div>
             
             {/* 작업 목록 */}
             <ScrollArea className="h-[400px]">
               <div className="space-y-3 pr-4">
-                {todayData.records.map((record, index) => (
+                {(todayData.records || []).map((record, index) => (
                   <div key={record.id} className="group">
                     <div className="relative">
                       {/* 타임라인 연결선 */}
@@ -186,7 +226,7 @@ export function DailyWorkList() {
                       />
                     </div>
                     
-                    {index < todayData.records.length - 1 && (
+                    {index < (todayData.records?.length || 0) - 1 && (
                       <div className="flex items-center gap-2 my-3 opacity-60">
                         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
                         <div className="text-xs text-muted-foreground">다음 작업</div>
