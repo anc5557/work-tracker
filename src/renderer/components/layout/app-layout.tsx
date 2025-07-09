@@ -28,6 +28,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(256); // 기본 너비
   const [isResizing, setIsResizing] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const { isWorking, currentRecord, elapsedTime } = useSession();
@@ -71,6 +72,20 @@ export function AppLayout({ children }: AppLayoutProps) {
     setIsResizing(false);
   }, []);
 
+  // 윈도우 크기 감지
+  useEffect(() => {
+    const checkIsDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    checkIsDesktop();
+    window.addEventListener('resize', checkIsDesktop);
+
+    return () => {
+      window.removeEventListener('resize', checkIsDesktop);
+    };
+  }, []);
+
   // 이벤트 리스너 등록/해제
   useEffect(() => {
     if (isResizing) {
@@ -93,8 +108,11 @@ export function AppLayout({ children }: AppLayoutProps) {
     };
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
+  // 현재 사이드바 너비 계산
+  const currentSidebarWidth = sidebarCollapsed ? 80 : sidebarWidth;
+
   return (
-    <div className="flex min-h-screen bg-gray-900">
+    <div className="flex h-screen bg-gray-900 overflow-hidden">
       {/* 모바일 오버레이 */}
       {sidebarOpen && (
         <div 
@@ -107,18 +125,17 @@ export function AppLayout({ children }: AppLayoutProps) {
       <aside 
         ref={sidebarRef}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 bg-gray-800 border-r border-gray-700 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 app-sidebar",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
-          sidebarCollapsed ? "w-20" : ""
+          "fixed inset-y-0 left-0 z-50 bg-gray-800 border-r border-gray-700 transform transition-all duration-300 ease-in-out lg:translate-x-0 app-sidebar",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
         style={{
-          width: sidebarCollapsed ? '80px' : `${sidebarWidth}px`,
+          width: `${currentSidebarWidth}px`,
           transition: isResizing ? 'none' : 'all 0.3s ease-in-out'
         }}
       >
         <div className="flex flex-col h-full">
           {/* 사이드바 헤더 */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="flex items-center justify-between p-4 border-b border-gray-700 flex-shrink-0">
             <div className={cn(
               "flex items-center space-x-2 transition-opacity duration-200",
               sidebarCollapsed ? "opacity-0 lg:opacity-0" : "opacity-100"
@@ -160,7 +177,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
 
           {/* 네비게이션 메뉴 */}
-          <nav className="flex-1 p-4">
+          <nav className="flex-1 p-4 overflow-y-auto">
             <ul className="space-y-2">
               {navItems.map(({ path, icon: Icon, label }) => (
                 <li key={path}>
@@ -194,7 +211,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           {/* 세션 상태 표시 */}
           {!sidebarCollapsed && isWorking && currentRecord && (
-            <div className="p-4 border-t border-gray-700 bg-green-900/20">
+            <div className="p-4 border-t border-gray-700 bg-green-900/20 flex-shrink-0">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -213,7 +230,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           {/* 접힌 상태에서 세션 인디케이터 */}
           {sidebarCollapsed && isWorking && (
-            <div className="p-3 border-t border-gray-700">
+            <div className="p-3 border-t border-gray-700 flex-shrink-0">
               <div className="flex justify-center">
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" title="작업 진행 중"></div>
               </div>
@@ -222,7 +239,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           {/* 사이드바 푸터 */}
           {!sidebarCollapsed && (
-            <div className="p-4 border-t border-gray-700">
+            <div className="p-4 border-t border-gray-700 flex-shrink-0">
               <div className="text-xs text-gray-400 text-center">
                 Work Tracker v1.0
               </div>
@@ -244,9 +261,14 @@ export function AppLayout({ children }: AppLayoutProps) {
       </aside>
 
       {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 flex flex-col">
-        {/* 간소화된 헤더 (모바일 메뉴 버튼 포함) */}
-        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 lg:px-6 lg:py-4 app-no-drag">
+      <div 
+        className="flex-1 flex flex-col h-screen"
+        style={{
+          marginLeft: isDesktop ? `${currentSidebarWidth}px` : '0'
+        }}
+      >
+        {/* 고정 헤더 */}
+        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 lg:px-6 lg:py-4 app-no-drag flex-shrink-0">
           <div className="flex items-center justify-between">
             {/* 모바일 메뉴 버튼 */}
             <Button
@@ -272,8 +294,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </header>
 
-        {/* 페이지 콘텐츠 */}
-        <main className="flex-1 p-6 bg-gray-900 app-main-content">
+        {/* 스크롤 가능한 메인 콘텐츠 */}
+        <main className="flex-1 p-6 bg-gray-900 app-main-content overflow-y-auto">
           {children}
         </main>
       </div>

@@ -81,18 +81,18 @@ export function Dashboard() {
   const currentTime = formatTime(elapsedTime);
 
   return (
-    <div className="space-y-8 p-6">
+    <div className="space-y-8">
       {/* 현재 세션 섹션 */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            업무 대시보드
+          <h1 className="text-2xl font-semibold text-white">
+            Dashboard
           </h1>
           <div className="flex items-center gap-2">
             {isWorking && (
-              <Badge variant="default" className="bg-green-500 text-white animate-pulse">
-                <Play className="w-3 h-3 mr-1" />
-                진행 중
+              <Badge variant="secondary" className="bg-green-600 text-white border-green-600">
+                <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
+                작업 중
               </Badge>
             )}
           </div>
@@ -107,48 +107,48 @@ export function Dashboard() {
 
           {/* 오늘의 통계 */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h3 className="text-lg font-medium text-gray-300 mb-4">
               오늘의 통계
             </h3>
             
-            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+            <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">총 작업 시간</p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    <p className="text-sm text-gray-400">총 작업 시간</p>
+                    <p className="text-2xl font-semibold text-white">
                       {formatDuration(todayStats.totalDuration)}
                     </p>
                   </div>
-                  <Clock className="w-8 h-8 text-blue-500" />
+                  <Clock className="w-6 h-6 text-gray-400" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+            <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">완료된 세션</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    <p className="text-sm text-gray-400">완료된 세션</p>
+                    <p className="text-2xl font-semibold text-white">
                       {todayStats.completedSessions}개
                     </p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-green-500" />
+                  <CheckCircle className="w-6 h-6 text-gray-400" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20">
+            <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">평균 세션 시간</p>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                    <p className="text-sm text-gray-400">평균 세션 시간</p>
+                    <p className="text-2xl font-semibold text-white">
                       {formatDuration(todayStats.averageSessionTime)}
                     </p>
                   </div>
-                  <Timer className="w-8 h-8 text-purple-500" />
+                  <Timer className="w-6 h-6 text-gray-400" />
                 </div>
               </CardContent>
             </Card>
@@ -158,30 +158,30 @@ export function Dashboard() {
 
       {/* 현재 진행 중인 세션 상세 정보 */}
       {isWorking && currentRecord && (
-        <Card className="bg-gradient-to-r from-green-500/10 via-emerald-500/5 to-teal-500/10 border-green-200 dark:border-green-700">
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
-              <Target className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-white">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               현재 진행 중인 작업
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold text-lg mb-2">{currentRecord.title}</h3>
+                <h3 className="font-medium text-lg mb-2 text-white">{currentRecord.title}</h3>
                 {currentRecord.description && (
-                  <p className="text-gray-600 dark:text-gray-400">{currentRecord.description}</p>
+                  <p className="text-gray-400">{currentRecord.description}</p>
                 )}
-                <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 mt-2">
                   시작 시간: {new Date(currentRecord.startTime).toLocaleString('ko-KR')}
                 </p>
               </div>
               <div className="flex items-center justify-center md:justify-end">
                 <div className="text-center">
-                  <div className="text-4xl font-mono font-bold text-green-600 dark:text-green-400">
+                  <div className="text-3xl font-mono font-semibold text-white">
                     {currentTime.hours}:{currentTime.minutes}:{currentTime.seconds}
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">경과 시간</p>
+                  <p className="text-sm text-gray-400 mt-1">경과 시간</p>
                 </div>
               </div>
             </div>
@@ -192,10 +192,10 @@ export function Dashboard() {
       {/* 오늘의 세션 목록 */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            오늘의 작업 기록
+          <h2 className="text-xl font-medium text-white">
+            오늘의 업무
           </h2>
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-gray-400">
             <Calendar className="w-4 h-4" />
             {new Date().toLocaleDateString('ko-KR', { 
               year: 'numeric', 
@@ -207,24 +207,6 @@ export function Dashboard() {
 
         <DailyWorkList />
       </div>
-
-      {/* 빠른 액션 */}
-      {!isWorking && (
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10">
-          <CardContent className="p-6 text-center">
-            <h3 className="text-lg font-semibold mb-2">새로운 작업을 시작하세요!</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              생산적인 하루를 위해 지금 바로 작업을 시작해보세요.
-            </p>
-            <div className="flex items-center justify-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <BarChart3 className="w-4 h-4" />
-                <span>진행률을 추적하고 성과를 분석하세요</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 } 
