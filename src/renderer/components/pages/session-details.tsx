@@ -186,14 +186,14 @@ export function SessionDetails() {
     
     if (session.isActive) {
       return (
-        <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white flex items-center gap-1">
+        <Badge variant="default" className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-1">
           <Play className="w-3 h-3" />
           진행 중
         </Badge>
       );
     } else {
       return (
-        <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 flex items-center gap-1">
+        <Badge variant="secondary" className="flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3" />
           완료
         </Badge>
@@ -299,7 +299,7 @@ export function SessionDetails() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Timer className="w-5 h-5" />
+              <Timer className="w-5 h-5 text-primary" />
               세션 정보
             </CardTitle>
           </CardHeader>
@@ -315,7 +315,7 @@ export function SessionDetails() {
                   className="text-lg"
                 />
               ) : (
-                <h2 className="text-lg font-semibold">{session.title}</h2>
+                <h2 className="text-lg font-semibold text-foreground">{session.title}</h2>
               )}
             </div>
 
@@ -331,19 +331,19 @@ export function SessionDetails() {
                 />
               ) : (
                 <p className="text-muted-foreground leading-relaxed">
-                  {session.description || '설명이 없습니다.'}
+                  {session.description || '업무 내용 미입력'}
                 </p>
               )}
             </div>
 
             {/* Time Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-border">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
                   시작 시간
                 </div>
-                <p className="font-medium">{formatDate(session.startTime)}</p>
+                <p className="font-medium text-foreground">{formatDate(session.startTime)}</p>
               </div>
               
               <div className="space-y-1">
@@ -351,7 +351,7 @@ export function SessionDetails() {
                   <Calendar className="w-4 h-4" />
                   종료 시간
                 </div>
-                <p className="font-medium">
+                <p className="font-medium text-foreground">
                   {session.endTime ? formatDate(session.endTime) : '진행 중'}
                 </p>
               </div>
@@ -361,7 +361,7 @@ export function SessionDetails() {
                   <Clock className="w-4 h-4" />
                   소요 시간
                 </div>
-                <p className="font-medium">{formatDuration(session.startTime, session.endTime)}</p>
+                <p className="font-medium text-foreground">{formatDuration(session.startTime, session.endTime)}</p>
               </div>
             </div>
           </CardContent>
@@ -372,7 +372,7 @@ export function SessionDetails() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Camera className="w-5 h-5" />
+                <Camera className="w-5 h-5 text-primary" />
                 스크린샷 ({screenshots.length}개)
               </div>
               {screenshots.length > 0 && (
@@ -390,15 +390,15 @@ export function SessionDetails() {
                   {screenshots.map((screenshot, index) => (
                     <div 
                       key={screenshot.id}
-                      className="group relative bg-muted rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                      className="group relative bg-muted/50 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary hover:bg-muted/70 transition-all"
                     >
                       {/* Preview placeholder */}
-                      <div className="aspect-video bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center">
+                      <div className="aspect-video bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center border border-border">
                         <ImageIcon className="w-8 h-8 text-muted-foreground" />
                       </div>
                       
                       {/* Overlay with actions */}
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
@@ -432,7 +432,7 @@ export function SessionDetails() {
                       
                       {/* Timestamp */}
                       <div className="absolute bottom-1 left-1 right-1">
-                        <div className="bg-black/70 text-white text-xs px-2 py-1 rounded text-center">
+                        <div className="bg-background/90 backdrop-blur-sm text-foreground text-xs px-2 py-1 rounded border border-border text-center">
                           {new Date(screenshot.timestamp).toLocaleTimeString('ko-KR', {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -452,32 +452,32 @@ export function SessionDetails() {
                 </div>
 
                 {/* Timeline */}
-                <div className="pt-6 border-t">
-                  <h3 className="text-lg font-medium mb-4">활동 타임라인</h3>
+                <div className="pt-6 border-t border-border">
+                  <h3 className="text-lg font-medium mb-4 text-foreground">활동 타임라인</h3>
                   <ScrollArea className="h-64">
                     <div className="space-y-3">
                       {/* Session start */}
-                      <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
                         <div className="flex-1">
-                          <p className="font-medium text-green-700 dark:text-green-300">세션 시작</p>
-                          <p className="text-sm text-green-600 dark:text-green-400">{formatDate(session.startTime)}</p>
+                          <p className="font-medium text-primary">세션 시작</p>
+                          <p className="text-sm text-muted-foreground">{formatDate(session.startTime)}</p>
                         </div>
                       </div>
 
                       {/* Screenshots */}
                       {screenshots.map((screenshot, index) => (
-                        <div key={screenshot.id} className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div key={screenshot.id} className="flex items-center gap-3 p-3 bg-secondary/20 rounded-lg border border-secondary/30">
+                          <div className="w-2 h-2 bg-secondary rounded-full"></div>
                           <div className="flex-1">
-                            <p className="font-medium text-blue-700 dark:text-blue-300">스크린샷 #{index + 1} 캡처</p>
-                            <p className="text-sm text-blue-600 dark:text-blue-400">{formatDate(screenshot.timestamp)}</p>
+                            <p className="font-medium text-foreground">스크린샷 #{index + 1} 캡처</p>
+                            <p className="text-sm text-muted-foreground">{formatDate(screenshot.timestamp)}</p>
                           </div>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => openImageDialog(screenshot)}
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                            className="text-secondary-foreground hover:text-foreground"
                           >
                             보기
                           </Button>
@@ -486,11 +486,11 @@ export function SessionDetails() {
 
                       {/* Session end */}
                       {session.endTime && (
-                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900/10 rounded-lg border border-gray-200 dark:border-gray-800">
-                          <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                        <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
                           <div className="flex-1">
-                            <p className="font-medium text-gray-700 dark:text-gray-300">세션 종료</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{formatDate(session.endTime)}</p>
+                            <p className="font-medium text-foreground">세션 종료</p>
+                            <p className="text-sm text-muted-foreground">{formatDate(session.endTime)}</p>
                           </div>
                         </div>
                       )}
@@ -500,7 +500,7 @@ export function SessionDetails() {
               </div>
             ) : (
               <div className="text-center py-12 space-y-4">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto border border-border">
                   <Camera className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <div>
@@ -550,7 +550,7 @@ export function SessionDetails() {
           {selectedScreenshot && (
             <div className="space-y-4">
               {/* Image placeholder */}
-              <div className="w-full h-96 bg-muted rounded-lg flex items-center justify-center">
+              <div className="w-full h-96 bg-muted/50 rounded-lg flex items-center justify-center border border-border">
                 <div className="text-center space-y-2">
                   <ImageIcon className="w-16 h-16 text-muted-foreground mx-auto" />
                   <p className="text-sm text-muted-foreground">스크린샷 미리보기</p>
@@ -559,12 +559,12 @@ export function SessionDetails() {
               </div>
               
               {/* Image info */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-lg border border-border">
                 <div>
-                  <strong>파일명:</strong> {selectedScreenshot.filename}
+                  <strong className="text-foreground">파일명:</strong> <span className="text-muted-foreground">{selectedScreenshot.filename}</span>
                 </div>
                 <div>
-                  <strong>경로:</strong> {selectedScreenshot.path}
+                  <strong className="text-foreground">경로:</strong> <span className="text-muted-foreground">{selectedScreenshot.path}</span>
                 </div>
               </div>
             </div>
