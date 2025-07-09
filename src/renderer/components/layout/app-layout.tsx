@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { 
   Home, 
   Calendar, 
@@ -9,9 +10,13 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Clock,
+  Play
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useSession } from '../../contexts/session-context';
+import { formatDuration } from '../../lib/utils';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -24,6 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const { isWorking, currentRecord, elapsedTime } = useSession();
   
   const minWidth = 200; // 최소 너비
   const maxWidth = 400; // 최대 너비
@@ -181,6 +187,34 @@ export function AppLayout({ children }: AppLayoutProps) {
               ))}
             </ul>
           </nav>
+
+          {/* 세션 상태 표시 */}
+          {!sidebarCollapsed && isWorking && currentRecord && (
+            <div className="p-4 border-t border-gray-700 bg-green-900/20">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-gray-300 font-medium">진행 중</span>
+                </div>
+                <div className="text-sm text-white font-semibold truncate">
+                  {currentRecord.title}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-gray-300">
+                  <Clock className="w-3 h-3" />
+                  <span className="font-mono">{formatDuration(elapsedTime)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 접힌 상태에서 세션 인디케이터 */}
+          {sidebarCollapsed && isWorking && (
+            <div className="p-3 border-t border-gray-700">
+              <div className="flex justify-center">
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" title="작업 진행 중"></div>
+              </div>
+            </div>
+          )}
 
           {/* 사이드바 푸터 */}
           {!sidebarCollapsed && (

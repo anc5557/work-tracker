@@ -12,9 +12,12 @@ import type { WorkRecord } from '../../../shared/types';
 export function WorkTimer() {
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const { toast } = useToast();
-  const { isWorking, currentRecord, elapsedTime, startSession, stopSession, restoreSession } = useSession();
+  const { isWorking, currentRecord, elapsedTime, startSession, stopSession, checkSession } = useSession();
 
   const handleStartWork = async () => {
+    // 먼저 세션 상태를 체크하여 동기화
+    await checkSession();
+    
     // 이미 진행 중인 세션이 있는지 확인
     if (isWorking && currentRecord) {
       toast({
@@ -28,15 +31,15 @@ export function WorkTimer() {
     // 백엔드에서도 한번 더 확인
     try {
       const result = await window.electronAPI.invoke('get-active-session');
-      if (result.success && result.data) {
+      if (result.success && result.data && result.data.isActive) {
         toast({
           title: "진행 중인 세션 감지",
           description: "다른 곳에서 진행 중인 작업이 있습니다. 세션이 복원됩니다.",
           variant: "destructive",
         });
         
-        // 세션 복원
-        await restoreSession();
+        // 세션 체크로 복원
+        await checkSession();
         return;
       }
     } catch (error) {
