@@ -2,8 +2,8 @@ export interface WorkRecord {
   id: string;
   title: string;
   description?: string;
-  startTime: Date;
-  endTime?: Date;
+  startTime: string; // ISO date string
+  endTime?: string; // ISO date string
   screenshotPath?: string;
   tags: string[];
   isActive: boolean;
@@ -26,7 +26,7 @@ export interface AppConfig {
 
 export interface ScreenshotData {
   id: string;
-  timestamp: Date;
+  timestamp: string; // ISO date string
   filePath: string;
   workRecordId?: string;
 }
@@ -51,6 +51,10 @@ export type RendererToMainRequests = {
   'stop-work': { id: string };
   'save-work-record': WorkRecord;
   'get-work-records': { date?: string };
+  'get-work-record': { id: string };
   'get-screenshots': { workRecordId?: string };
+  'get-session-screenshots': { sessionId: string };
+  'get-work-stats': { timeRange: 'week' | 'month' | 'year' };
   'open-screenshot': { path: string };
+  'open-folder-dialog': void;
 }; 

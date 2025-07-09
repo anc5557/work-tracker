@@ -109,7 +109,7 @@ export class ScreenshotService {
 
       const screenshotData: ScreenshotData = {
         id: uuidv4(),
-        timestamp,
+        timestamp: timestamp.toISOString(),
         filePath,
       };
 
@@ -147,7 +147,7 @@ export class ScreenshotService {
 
       return {
         id: uuidv4(),
-        timestamp,
+        timestamp: timestamp.toISOString(),
         filePath,
       };
 
