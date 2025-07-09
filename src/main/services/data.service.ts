@@ -359,7 +359,9 @@ export class DataService {
           startDate.setDate(endDate.getDate() - 7);
           break;
         case 'month':
-          startDate.setDate(endDate.getDate() - 30);
+          // 현재 달의 첫날로 설정
+          startDate.setDate(1);
+          startDate.setHours(0, 0, 0, 0);
           break;
         case 'year':
           startDate.setDate(endDate.getDate() - 365);
@@ -461,6 +463,64 @@ export class DataService {
           Saturday: 0,
           Sunday: 0
         }
+      };
+    }
+  }
+
+  /**
+   * 특정 월의 통계를 계산합니다. (Calendar 페이지용)
+   */
+  async getMonthStats(year: number, month: number): Promise<{
+    totalDuration: number;
+    totalSessions: number;
+    totalDays: number;
+    averageSessionDuration: number;
+  }> {
+    try {
+      // 해당 월의 첫날과 마지막날 계산
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 0);
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      // 해당 월의 모든 업무 기록 가져오기
+      const dayDataList = await this.getWorkRecordsInRange(startDateStr, endDateStr);
+      
+      // 통계 계산
+      let totalDuration = 0;
+      let totalSessions = 0;
+      const activeDays = new Set<string>();
+
+      for (const dayData of dayDataList) {
+        if (dayData.records.length > 0) {
+          activeDays.add(dayData.date);
+          
+          for (const record of dayData.records) {
+            if (record.duration && record.duration > 0) {
+              totalDuration += record.duration;
+              totalSessions++;
+            }
+          }
+        }
+      }
+
+      const averageSessionDuration = totalSessions > 0 ? totalDuration / totalSessions : 0;
+
+      return {
+        totalDuration,
+        totalSessions,
+        totalDays: activeDays.size,
+        averageSessionDuration
+      };
+
+    } catch (error) {
+      console.error('Failed to calculate month stats:', error);
+      return {
+        totalDuration: 0,
+        totalSessions: 0,
+        totalDays: 0,
+        averageSessionDuration: 0
       };
     }
   }

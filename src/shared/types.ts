@@ -78,6 +78,7 @@ export type RendererToMainRequests = {
   'get-screenshots': { workRecordId?: string };
   'get-session-screenshots': { sessionId: string };
   'get-work-stats': { timeRange: 'week' | 'month' | 'year' };
+  'get-month-stats': { year: number; month: number };
   'open-screenshot': { path: string };
   'open-folder-dialog': void;
   // 자동 캡처 관련

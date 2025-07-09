@@ -312,6 +312,17 @@ export class IpcHandlers {
       }
     });
 
+    // 월별 통계 조회 (Calendar 페이지용)
+    ipcMain.handle('get-month-stats', async (_, data: { year: number; month: number }) => {
+      try {
+        const stats = await this.dataService.getMonthStats(data.year, data.month);
+        return { success: true, data: stats };
+      } catch (error) {
+        console.error('Failed to get month stats:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
     // 폴더 선택 다이얼로그
     ipcMain.handle('open-folder-dialog', async () => {
       try {

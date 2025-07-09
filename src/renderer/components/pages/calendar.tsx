@@ -87,15 +87,25 @@ export function Calendar() {
 
   const loadMonthData = async (date: Date) => {
     try {
-      // 월별 통계 로드
-      const statsResult = await window.electronAPI.invoke('get-work-stats', { timeRange: 'month' });
+      // 월별 통계 로드 (새로운 핸들러 사용)
+      const year = date.getFullYear();
+      const month = date.getMonth(); // 0-based month
+      
+      const statsResult = await window.electronAPI.invoke('get-month-stats', { year, month });
       if (statsResult.success) {
         setMonthStats(statsResult.data);
+      } else {
+        console.error('Failed to load month stats:', statsResult.error);
+        // 기본값 설정
+        setMonthStats({
+          totalDuration: 0,
+          totalSessions: 0,
+          totalDays: 0,
+          averageSessionDuration: 0
+        });
       }
 
       // 해당 월의 모든 날짜에 대한 업무 데이터 로드
-      const year = date.getFullYear();
-      const month = date.getMonth();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const newMonthData = new Map<string, DayData>();
 
@@ -105,7 +115,7 @@ export function Calendar() {
         
         try {
           const result = await window.electronAPI.invoke('get-work-records', { date: dateString });
-          if (result.success && result.data.records.length > 0) {
+          if (result.success && result.data.records && result.data.records.length > 0) {
             newMonthData.set(dateString, {
               date: dateString,
               hasWork: true,
@@ -121,6 +131,13 @@ export function Calendar() {
       setMonthWorkData(newMonthData);
     } catch (error) {
       console.error('Failed to load month data:', error);
+      // 에러 시 기본값 설정
+      setMonthStats({
+        totalDuration: 0,
+        totalSessions: 0,
+        totalDays: 0,
+        averageSessionDuration: 0
+      });
     }
   };
 
@@ -244,6 +261,7 @@ export function Calendar() {
       currentWeek.push(
         <div
           key={i}
+          onClick={() => handleDateClick(cellDate, isCurrentMonth)}
           onMouseDown={() => handleMouseDown(cellDate, isCurrentMonth)}
           onMouseEnter={() => handleMouseEnter(cellDate, isCurrentMonth)}
           onMouseUp={handleMouseUp}
@@ -315,9 +333,21 @@ export function Calendar() {
   };
 
   const formatDuration = (ms: number) => {
+    // NaN 또는 유효하지 않은 값 처리
+    if (!ms || isNaN(ms) || ms < 0) {
+      return '0시간 0분';
+    }
+    
     const hours = Math.floor(ms / (1000 * 60 * 60));
     const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}시간 ${minutes}분`;
+  };
+
+  // 단일 클릭으로 날짜 선택
+  const handleDateClick = (date: Date, isCurrentMonth: boolean) => {
+    if (!isCurrentMonth) return;
+    setSelectedDate(date);
+    setSelectedRange([date]); // 단일 선택으로 범위 초기화
   };
 
   return (
