@@ -69,7 +69,7 @@ class WorkTrackerApp {
       height: 800,
       minWidth: 800,
       minHeight: 600,
-      titleBarStyle: 'hiddenInset', // macOS 스타일
+      titleBarStyle: 'hidden', // hiddenInset에서 hidden으로 변경
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

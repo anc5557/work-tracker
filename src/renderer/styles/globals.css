@@ -56,6 +56,7 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-app-region: no-drag; /* 기본적으로 모든 영역을 no-drag로 설정 */
   }
 }
 
@@ -73,6 +74,15 @@
   -webkit-app-region: drag;
 }
 
+/* 헤더 내부의 버튼과 상호작용 요소들은 드래그 불가 */
+.app-header button,
+.app-header a,
+.app-header input,
+.app-header select,
+.app-header [role="button"] {
+  -webkit-app-region: no-drag !important;
+}
+
 /* 사이드바는 드래그 불가 */
 .app-sidebar {
   -webkit-app-region: no-drag;
@@ -83,7 +93,7 @@
   -webkit-app-region: no-drag;
 }
 
-/* 버튼과 상호작용 요소들은 드래그 불가 */
+/* 모든 버튼과 상호작용 요소들은 기본적으로 드래그 불가 */
 button, a, input, textarea, select, [role="button"] {
   -webkit-app-region: no-drag !important;
 }

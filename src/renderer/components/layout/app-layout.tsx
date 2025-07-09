@@ -246,7 +246,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* 메인 콘텐츠 영역 */}
       <div className="flex-1 flex flex-col">
         {/* 간소화된 헤더 (모바일 메뉴 버튼 포함) */}
-        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 lg:px-6 lg:py-4 app-header">
+        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 lg:px-6 lg:py-4 app-no-drag">
           <div className="flex items-center justify-between">
             {/* 모바일 메뉴 버튼 */}
             <Button
@@ -258,9 +258,9 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Menu className="w-5 h-5" />
             </Button>
 
-            {/* 헤더 타이틀 (현재 페이지) */}
-            <div className="flex-1 lg:flex lg:items-center lg:justify-center">
-              <h1 className="text-white text-lg font-semibold ml-4 lg:ml-0">
+            {/* 헤더 타이틀 (현재 페이지) - 이 부분만 드래그 가능 */}
+            <div className="flex-1 lg:flex lg:items-center lg:justify-center app-header">
+              <h1 className="text-white text-lg font-semibold ml-4 lg:ml-0 cursor-default select-none">
                 {navItems.find(item => isActive(item.path))?.label || 'Dashboard'}
               </h1>
             </div>
