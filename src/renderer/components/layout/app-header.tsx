@@ -1,61 +1,76 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Minus, X, Zap } from 'lucide-react';
+import { 
+  Home, 
+  Calendar, 
+  BarChart3, 
+  Settings, 
+  Bell,
+  HelpCircle,
+  User 
+} from 'lucide-react';
 
 export function AppHeader() {
-  const handleMinimize = () => {
-    window.electronAPI?.minimizeApp();
-  };
-
-  const handleClose = () => {
-    window.electronAPI?.closeApp();
-  };
+  const location = useLocation();
+  
+  const isActive = (path: string) => location.pathname === path;
+  
+  const navItems = [
+    { path: '/', icon: Home, label: 'Dashboard' },
+    { path: '/calendar', icon: Calendar, label: 'Calendar' },
+    { path: '/reports', icon: BarChart3, label: 'Reports' },
+    { path: '/settings', icon: Settings, label: 'Settings' },
+  ];
 
   return (
-    <header className="relative bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50">
-      {/* 배경 그래디언트 */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/3 to-indigo-500/5" />
-      
-      <div className="relative flex items-center justify-between px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <div className="space-y-1">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                Work Tracker
-              </h1>
-              <Badge variant="secondary" className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700">
-                v1.0 • 업무 자동화 도구
-              </Badge>
-            </div>
+    <header className="border-b border-gray-800 bg-gray-900 px-6 py-4">
+      <div className="flex items-center justify-between">
+        {/* 로고 */}
+        <div className="flex items-center space-x-2">
+          <div className="text-white">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
           </div>
+          <span className="text-white text-lg font-semibold">Work Tracker</span>
         </div>
         
-        <div className="flex items-center space-x-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMinimize}
-            className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200"
-          >
-            <Minus className="w-4 h-4" />
+        {/* 네비게이션 메뉴 */}
+        <nav className="flex items-center space-x-8">
+          {navItems.map(({ path, icon: Icon, label }) => (
+            <Link
+              key={path}
+              to={path}
+              className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isActive(path)
+                  ? 'text-white bg-gray-800'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{label}</span>
+            </Link>
+          ))}
+        </nav>
+        
+        {/* 우측 메뉴 */}
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
+            <HelpCircle className="w-4 h-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClose}
-            className="h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-full transition-all duration-200"
-          >
-            <X className="w-4 h-4" />
+          <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white relative">
+            <Bell className="w-4 h-4" />
+            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs bg-blue-600">
+              2
+            </Badge>
+          </Button>
+          <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
+            <User className="w-4 h-4" />
           </Button>
         </div>
       </div>
-      
-      {/* 하단 그라데이션 보더 */}
-      <div className="h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
     </header>
   );
 } 
