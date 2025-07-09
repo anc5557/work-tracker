@@ -1,18 +1,86 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { TaskInputDialog } from './task-input-dialog';
 import { useToast } from '../../hooks/use-toast';
 import { formatDuration } from '../../lib/utils';
-import { Play, Square, Camera, Clock, Zap, Target } from 'lucide-react';
+import { Play, Square, Camera, Clock, Zap, Target, Timer } from 'lucide-react';
 import { useSession } from '../../contexts/session-context';
-import type { WorkRecord } from '../../../shared/types';
+import type { WorkRecord, AppSettings, AutoCaptureStatus } from '../../../shared/types';
 
 export function WorkTimer() {
   const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [autoCaptureStatus, setAutoCaptureStatus] = useState<AutoCaptureStatus | null>(null);
   const { toast } = useToast();
   const { isWorking, currentRecord, elapsedTime, startSession, stopSession, checkSession } = useSession();
+
+  // 설정과 자동 캡처 상태 로드
+  useEffect(() => {
+    loadSettings();
+    loadAutoCaptureStatus();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const result = await window.electronAPI.invoke('load-settings');
+      if (result.success) {
+        setSettings(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  };
+
+  const loadAutoCaptureStatus = async () => {
+    try {
+      const result = await window.electronAPI.invoke('get-auto-capture-status');
+      if (result.success) {
+        setAutoCaptureStatus(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load auto capture status:', error);
+    }
+  };
+
+  // 자동 캡처 시작
+  const startAutoCapture = async (sessionId: string) => {
+    if (!settings?.autoCapture) return;
+    
+    try {
+      const result = await window.electronAPI.invoke('start-auto-capture', {
+        sessionId,
+        interval: settings.captureInterval
+      });
+      
+      if (result.success) {
+        setAutoCaptureStatus(result.data);
+        toast({
+          title: "자동 캡처 시작",
+          description: `${settings.captureInterval}분 간격으로 자동 캡처가 시작되었습니다.`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to start auto capture:', error);
+    }
+  };
+
+  // 자동 캡처 정지
+  const stopAutoCapture = async () => {
+    try {
+      const result = await window.electronAPI.invoke('stop-auto-capture');
+      if (result.success) {
+        setAutoCaptureStatus(result.data);
+        toast({
+          title: "자동 캡처 정지",
+          description: "자동 캡처가 정지되었습니다.",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to stop auto capture:', error);
+    }
+  };
 
   const handleStartWork = async () => {
     // 먼저 세션 상태를 체크하여 동기화
@@ -32,13 +100,7 @@ export function WorkTimer() {
     try {
       const result = await window.electronAPI.invoke('get-active-session');
       if (result.success && result.data && result.data.isActive) {
-        toast({
-          title: "진행 중인 세션 감지",
-          description: "다른 곳에서 진행 중인 작업이 있습니다. 세션이 복원됩니다.",
-          variant: "destructive",
-        });
-        
-        // 세션 체크로 복원
+        // 세션 체크로 조용히 복원
         await checkSession();
         return;
       }
@@ -56,6 +118,9 @@ export function WorkTimer() {
       if (result.success) {
         startSession(result.data);
         setShowTaskDialog(false);
+        
+        // 자동 캡처 시작
+        await startAutoCapture(result.data.id);
         
         toast({
           title: "업무 시작",
@@ -89,6 +154,9 @@ export function WorkTimer() {
         startSession(result.data);
         setShowTaskDialog(false);
         
+        // 자동 캡처 시작
+        await startAutoCapture(result.data.id);
+        
         toast({
           title: "업무 시작",
           description: "업무를 시작했습니다.",
@@ -108,6 +176,9 @@ export function WorkTimer() {
     if (!currentRecord) return;
 
     try {
+      // 자동 캡처 정지
+      await stopAutoCapture();
+      
       const result = await window.electronAPI.invoke('stop-work', { id: currentRecord.id });
       
       if (result.success) {
@@ -248,9 +319,36 @@ export function WorkTimer() {
             
             {/* 진행 상태 표시 */}
             {isWorking && (
-              <div className="flex items-center justify-center gap-2 text-sm text-gray-400 pt-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span>작업 진행 중</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span>작업 진행 중</span>
+                </div>
+                
+                {/* 자동 캡처 상태 */}
+                {autoCaptureStatus && settings && (
+                  <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                    {autoCaptureStatus.isActive ? (
+                      <>
+                        <Timer className="w-3 h-3 text-blue-400" />
+                        <span>자동 캡처: {settings.captureInterval}분 간격</span>
+                        <Badge variant="outline" className="text-xs border-blue-400 text-blue-400">
+                          {autoCaptureStatus.totalCaptured}회 캡처됨
+                        </Badge>
+                      </>
+                    ) : settings.autoCapture ? (
+                      <>
+                        <Timer className="w-3 h-3 text-gray-500" />
+                        <span>자동 캡처 대기 중</span>
+                      </>
+                    ) : (
+                      <>
+                        <Timer className="w-3 h-3 text-gray-500" />
+                        <span>자동 캡처 비활성화</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

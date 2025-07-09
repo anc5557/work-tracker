@@ -1,16 +1,19 @@
 import { ipcMain, shell, BrowserWindow, dialog } from 'electron';
 import { ScreenshotService } from '../services/screenshot.service';
 import { DataService } from '../services/data.service';
-import type { WorkRecord } from '@/shared/types';
+import { SettingsService } from '../services/settings.service';
+import type { WorkRecord, AppSettings } from '@/shared/types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class IpcHandlers {
   private screenshotService: ScreenshotService;
   private dataService: DataService;
+  private settingsService: SettingsService;
 
   constructor(dataPath: string) {
     this.screenshotService = new ScreenshotService(dataPath);
     this.dataService = new DataService(dataPath);
+    this.settingsService = new SettingsService(dataPath);
     this.setupHandlers();
   }
 
@@ -339,6 +342,76 @@ export class IpcHandlers {
         return { success: true, data: result.filePaths[0] };
       } catch (error) {
         console.error('Failed to open folder dialog:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    // 자동 캡처 관련 핸들러
+    ipcMain.handle('start-auto-capture', async (_, data: { sessionId: string; interval: number }) => {
+      try {
+        const success = await this.screenshotService.startAutoCapture(data.sessionId, data.interval);
+        if (success) {
+          return { success: true, data: this.screenshotService.getAutoCaptureStatus() };
+        } else {
+          return { success: false, error: '자동 캡처 시작에 실패했습니다.' };
+        }
+      } catch (error) {
+        console.error('Failed to start auto capture:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    ipcMain.handle('stop-auto-capture', async () => {
+      try {
+        this.screenshotService.stopAutoCapture();
+        return { success: true, data: this.screenshotService.getAutoCaptureStatus() };
+      } catch (error) {
+        console.error('Failed to stop auto capture:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    ipcMain.handle('get-auto-capture-status', async () => {
+      try {
+        const status = this.screenshotService.getAutoCaptureStatus();
+        return { success: true, data: status };
+      } catch (error) {
+        console.error('Failed to get auto capture status:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    // 설정 관련 핸들러
+    ipcMain.handle('save-settings', async (_, settings: AppSettings) => {
+      try {
+        const success = await this.settingsService.saveSettings(settings);
+        if (success) {
+          return { success: true, data: settings };
+        } else {
+          return { success: false, error: '설정 저장에 실패했습니다.' };
+        }
+      } catch (error) {
+        console.error('Failed to save settings:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    ipcMain.handle('load-settings', async () => {
+      try {
+        const settings = await this.settingsService.loadSettings();
+        return { success: true, data: settings };
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    ipcMain.handle('get-default-settings', async () => {
+      try {
+        const settings = this.settingsService.getDefaultSettings();
+        return { success: true, data: settings };
+      } catch (error) {
+        console.error('Failed to get default settings:', error);
         return { success: false, error: (error as Error).message };
       }
     });

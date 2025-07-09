@@ -1,12 +1,18 @@
-import { desktopCapturer, nativeImage, systemPreferences } from 'electron';
+import { desktopCapturer, nativeImage, systemPreferences, BrowserWindow } from 'electron';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import type { ScreenshotData } from '@/shared/types';
+import type { ScreenshotData, AutoCaptureStatus } from '@/shared/types';
 
 export class ScreenshotService {
   private dataPath: string;
   private screenshotDir: string;
+  private autoCaptureTimer: NodeJS.Timeout | null = null;
+  private autoCaptureStatus: AutoCaptureStatus = {
+    isActive: false,
+    interval: 5, // 기본 5분
+    totalCaptured: 0
+  };
 
   constructor(dataPath: string) {
     this.dataPath = dataPath;
@@ -162,5 +168,135 @@ export class ScreenshotService {
    */
   async cleanupOldScreenshots(olderThanDays: number = 30): Promise<void> {
     // TODO: 구현 필요 (나중에 추가)
+  }
+
+  /**
+   * 자동 캡처를 시작합니다.
+   */
+  async startAutoCapture(sessionId: string, intervalMinutes: number = 5): Promise<boolean> {
+    try {
+      // 이미 실행 중인 자동 캡처가 있다면 정지
+      if (this.autoCaptureTimer) {
+        this.stopAutoCapture();
+      }
+
+      // 권한 확인
+      const hasPermission = await this.checkPermissions();
+      if (!hasPermission) {
+        const granted = await this.requestPermissions();
+        if (!granted) {
+          throw new Error('화면 캡처 권한이 필요합니다.');
+        }
+      }
+
+      const intervalMs = intervalMinutes * 60 * 1000; // 분을 밀리초로 변환
+      
+      // 상태 업데이트
+      this.autoCaptureStatus = {
+        isActive: true,
+        sessionId,
+        interval: intervalMinutes,
+        nextCaptureTime: new Date(Date.now() + intervalMs).toISOString(),
+        totalCaptured: 0
+      };
+
+      // 자동 캡처 타이머 시작
+      this.autoCaptureTimer = setInterval(async () => {
+        try {
+          await this.performAutoCapture(sessionId);
+        } catch (error) {
+          console.error('Auto capture failed:', error);
+          // 에러가 발생해도 타이머는 계속 실행
+        }
+      }, intervalMs);
+
+      console.log(`Auto capture started for session ${sessionId}, interval: ${intervalMinutes} minutes`);
+      
+      // 상태 변경을 렌더러에 알림
+      this.notifyStatusChange();
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to start auto capture:', error);
+      this.autoCaptureStatus.isActive = false;
+      return false;
+    }
+  }
+
+  /**
+   * 자동 캡처를 정지합니다.
+   */
+  stopAutoCapture(): void {
+    if (this.autoCaptureTimer) {
+      clearInterval(this.autoCaptureTimer);
+      this.autoCaptureTimer = null;
+    }
+
+    this.autoCaptureStatus = {
+      isActive: false,
+      interval: this.autoCaptureStatus.interval,
+      totalCaptured: this.autoCaptureStatus.totalCaptured
+    };
+
+    console.log('Auto capture stopped');
+    
+    // 상태 변경을 렌더러에 알림
+    this.notifyStatusChange();
+  }
+
+  /**
+   * 자동 캡처 상태를 반환합니다.
+   */
+  getAutoCaptureStatus(): AutoCaptureStatus {
+    return { ...this.autoCaptureStatus };
+  }
+
+  /**
+   * 실제 자동 캡처를 수행합니다.
+   */
+  private async performAutoCapture(sessionId: string): Promise<ScreenshotData | null> {
+    try {
+      const screenshot = await this.captureFullScreen();
+      if (screenshot) {
+        // 자동 캡처임을 표시
+        screenshot.isAutoCapture = true;
+        screenshot.workRecordId = sessionId;
+        
+        this.autoCaptureStatus.totalCaptured++;
+        this.autoCaptureStatus.nextCaptureTime = new Date(
+          Date.now() + this.autoCaptureStatus.interval * 60 * 1000
+        ).toISOString();
+
+        // 상태 변경을 렌더러에 알림
+        this.notifyStatusChange();
+        
+        // 스크린샷 캡처 이벤트를 렌더러에 전송
+        this.sendToRenderer('screenshot-captured', screenshot);
+        
+        console.log(`Auto screenshot captured: ${screenshot.filePath}`);
+        return screenshot;
+      }
+      return null;
+    } catch (error) {
+      console.error('Auto capture failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 상태 변경을 렌더러에 알립니다.
+   */
+  private notifyStatusChange(): void {
+    this.sendToRenderer('auto-capture-status-changed', this.autoCaptureStatus);
+  }
+
+  /**
+   * 렌더러에 이벤트를 전송합니다.
+   */
+  private sendToRenderer(event: string, data: any): void {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(event, data);
+    }
   }
 } 
