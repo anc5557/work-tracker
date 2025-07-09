@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { 
@@ -20,7 +20,13 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(256); // 기본 너비
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  
+  const minWidth = 200; // 최소 너비
+  const maxWidth = 400; // 최대 너비
   
   const isActive = (path: string) => location.pathname === path;
   
@@ -34,6 +40,49 @@ export function AppLayout({ children }: AppLayoutProps) {
   const closeSidebar = () => setSidebarOpen(false);
   const toggleCollapse = () => setSidebarCollapsed(!sidebarCollapsed);
 
+  // 리사이즈 시작
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  // 마우스 이동 처리
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const newWidth = e.clientX;
+    if (newWidth >= minWidth && newWidth <= maxWidth) {
+      setSidebarWidth(newWidth);
+    }
+  }, [isResizing, minWidth, maxWidth]);
+
+  // 리사이즈 종료
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // 이벤트 리스너 등록/해제
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = 'none'; // 드래그 중 텍스트 선택 방지
+      document.body.style.cursor = 'ew-resize'; // 커서 변경
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
   return (
     <div className="flex min-h-screen bg-gray-900">
       {/* 모바일 오버레이 */}
@@ -45,11 +94,18 @@ export function AppLayout({ children }: AppLayoutProps) {
       )}
 
       {/* 사이드바 */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 bg-gray-800 border-r border-gray-700 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full",
-        sidebarCollapsed ? "w-20" : "w-64"
-      )}>
+      <aside 
+        ref={sidebarRef}
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 bg-gray-800 border-r border-gray-700 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          sidebarCollapsed ? "w-20" : ""
+        )}
+        style={{
+          width: sidebarCollapsed ? '80px' : `${sidebarWidth}px`,
+          transition: isResizing ? 'none' : 'all 0.3s ease-in-out'
+        }}
+      >
         <div className="flex flex-col h-full">
           {/* 사이드바 헤더 */}
           <div className="flex items-center justify-between p-4 border-b border-gray-700">
@@ -63,7 +119,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </svg>
               </div>
               {!sidebarCollapsed && (
-                <span className="text-white text-lg font-semibold">Work Tracker</span>
+                <span className="text-white text-lg font-semibold truncate">Work Tracker</span>
               )}
             </div>
             
@@ -111,7 +167,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     title={sidebarCollapsed ? label : undefined}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
-                    {!sidebarCollapsed && <span>{label}</span>}
+                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
                     
                     {/* 접혔을 때 툴팁 */}
                     {sidebarCollapsed && (
@@ -135,6 +191,18 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           )}
         </div>
+
+        {/* 리사이즈 핸들 - 데스크톱에서만 표시하고 접힌 상태가 아닐 때만 */}
+        {!sidebarCollapsed && (
+          <div
+            className="absolute top-0 right-0 w-1 h-full cursor-ew-resize bg-transparent hover:bg-blue-500/30 transition-colors duration-200 hidden lg:block group"
+            onMouseDown={handleMouseDown}
+            title="드래그해서 사이드바 크기 조정"
+          >
+            {/* 시각적 인디케이터 */}
+            <div className="absolute top-1/2 right-0 transform -translate-y-1/2 w-1 h-8 bg-gray-600 rounded-l-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+          </div>
+        )}
       </aside>
 
       {/* 메인 콘텐츠 영역 */}
