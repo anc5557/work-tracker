@@ -96,6 +96,37 @@ export class IpcHandlers {
       }
     });
 
+    // 업무 기록 삭제
+    ipcMain.handle('delete-work-record', async (_, data: { id: string }) => {
+      try {
+        // 최근 7일 동안의 기록에서 해당 ID를 찾아서 삭제
+        const today = new Date();
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(today);
+          date.setDate(today.getDate() - i);
+          const dateString = date.toISOString().split('T')[0];
+          
+          const dayData = await this.dataService.getWorkRecords(dateString);
+          if (dayData) {
+            const record = dayData.records.find(r => r.id === data.id);
+            if (record) {
+              const deleted = await this.dataService.deleteWorkRecord(data.id, dateString);
+              if (deleted) {
+                return { success: true, data: { id: data.id, date: dateString } };
+              } else {
+                return { success: false, error: '업무 기록 삭제에 실패했습니다.' };
+              }
+            }
+          }
+        }
+        
+        return { success: false, error: '삭제할 업무 기록을 찾을 수 없습니다.' };
+      } catch (error) {
+        console.error('Failed to delete work record:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
     // 업무 기록 조회
     ipcMain.handle('get-work-records', async (_, data: { date?: string }) => {
       try {

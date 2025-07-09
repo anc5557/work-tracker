@@ -50,6 +50,7 @@ export type RendererToMainRequests = {
   'start-work': { title: string; description?: string };
   'stop-work': { id: string };
   'save-work-record': WorkRecord;
+  'delete-work-record': { id: string };
   'get-work-records': { date?: string };
   'get-work-record': { id: string };
   'get-screenshots': { workRecordId?: string };

@@ -7,7 +7,7 @@ import { Separator } from '../ui/separator';
 import { WorkRecordCard } from './work-record-card';
 import { formatDate, formatDuration } from '../../lib/utils';
 import { Calendar, Clock, Activity, RefreshCw, FileText } from 'lucide-react';
-import type { DayWorkSummary } from '../../../shared/types';
+import type { DayWorkSummary, WorkRecord } from '../../../shared/types';
 
 export function DailyWorkList() {
   const [todayData, setTodayData] = useState<DayWorkSummary | null>(null);
@@ -41,6 +41,36 @@ export function DailyWorkList() {
 
   const handleRefresh = () => {
     loadWorkRecords(selectedDate);
+  };
+
+  const handleEditRecord = async (updatedRecord: WorkRecord) => {
+    try {
+      const result = await window.electronAPI.invoke('save-work-record', updatedRecord);
+      if (result.success) {
+        await loadWorkRecords(selectedDate);
+      } else {
+        console.error('Failed to update work record:', result.error);
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Failed to update work record:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteRecord = async (recordId: string) => {
+    try {
+      const result = await window.electronAPI.invoke('delete-work-record', { id: recordId });
+      if (result.success) {
+        await loadWorkRecords(selectedDate);
+      } else {
+        console.error('Failed to delete work record:', result.error);
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Failed to delete work record:', error);
+      throw error;
+    }
   };
 
   const isToday = selectedDate === new Date().toISOString().split('T')[0];
@@ -151,6 +181,8 @@ export function DailyWorkList() {
                       <WorkRecordCard 
                         record={record} 
                         onUpdate={() => loadWorkRecords(selectedDate)}
+                        onEdit={handleEditRecord}
+                        onDelete={handleDeleteRecord}
                       />
                     </div>
                     
