@@ -50,6 +50,14 @@ export function Calendar() {
   const [dragStart, setDragStart] = useState<Date | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
+  // 로컬 시간 기준으로 날짜 문자열 생성 (시간대 문제 해결)
+  const formatDateToLocalString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // 현재 달과 다음 달 표시
   const getMonthYear = (date: Date) => {
     return date.toLocaleDateString('ko-KR', { month: 'long', year: 'numeric' });
@@ -111,7 +119,7 @@ export function Calendar() {
 
       for (let day = 1; day <= daysInMonth; day++) {
         const dayDate = new Date(year, month, day);
-        const dateString = dayDate.toISOString().split('T')[0];
+        const dateString = formatDateToLocalString(dayDate); // 시간대 문제 해결
         
         try {
           const result = await window.electronAPI.invoke('get-work-records', { date: dateString });
@@ -143,7 +151,7 @@ export function Calendar() {
 
   const loadWorkSessions = async (date: Date) => {
     try {
-      const dateString = date.toISOString().split('T')[0];
+      const dateString = formatDateToLocalString(date); // 시간대 문제 해결
       const result = await window.electronAPI.invoke('get-work-records', { date: dateString });
       if (result.success) {
         setWorkSessions(result.data.records || []);
@@ -253,7 +261,7 @@ export function Calendar() {
       const isInRange = selectedRange.some(d => d.toDateString() === cellDate.toDateString());
       
       // 해당 날짜의 업무 데이터
-      const dateString = cellDate.toISOString().split('T')[0];
+      const dateString = formatDateToLocalString(cellDate); // 시간대 문제 해결
       const dayData = monthWorkData.get(dateString);
       const hasWork = dayData?.hasWork || false;
       const sessionCount = dayData?.sessionCount || 0;
