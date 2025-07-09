@@ -15,6 +15,37 @@ export function WorkTimer() {
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const { toast } = useToast();
 
+  // 컴포넌트 마운트시 진행 중인 세션 복원
+  useEffect(() => {
+    const restoreActiveSession = async () => {
+      try {
+        const result = await window.electronAPI.invoke('get-active-session');
+        
+        if (result.success && result.data) {
+          const activeSession = result.data;
+          console.log('Active session found:', activeSession);
+          
+          setCurrentRecord(activeSession);
+          setIsWorking(true);
+          
+          // 경과 시간 계산
+          const now = new Date().getTime();
+          const start = new Date(activeSession.startTime).getTime();
+          setElapsedTime(now - start);
+          
+          toast({
+            title: "세션 복원",
+            description: `"${activeSession.title}" 작업이 복원되었습니다.`,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to restore active session:', error);
+      }
+    };
+
+    restoreActiveSession();
+  }, []); // 컴포넌트 마운트시에만 실행
+
   // 경과 시간 업데이트
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -34,7 +65,41 @@ export function WorkTimer() {
     };
   }, [isWorking, currentRecord]);
 
-  const handleStartWork = () => {
+  const handleStartWork = async () => {
+    // 이미 진행 중인 세션이 있는지 확인
+    if (isWorking && currentRecord) {
+      toast({
+        title: "진행 중인 세션",
+        description: "이미 진행 중인 작업이 있습니다. 먼저 현재 작업을 완료해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 백엔드에서도 한번 더 확인
+    try {
+      const result = await window.electronAPI.invoke('get-active-session');
+      if (result.success && result.data) {
+        toast({
+          title: "진행 중인 세션 감지",
+          description: "다른 곳에서 진행 중인 작업이 있습니다. 세션이 복원됩니다.",
+          variant: "destructive",
+        });
+        
+        // 세션 복원
+        const activeSession = result.data;
+        setCurrentRecord(activeSession);
+        setIsWorking(true);
+        
+        const now = new Date().getTime();
+        const start = new Date(activeSession.startTime).getTime();
+        setElapsedTime(now - start);
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to check active session:', error);
+    }
+
     setShowTaskDialog(true);
   };
 

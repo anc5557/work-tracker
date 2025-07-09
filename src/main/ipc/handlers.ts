@@ -165,6 +165,26 @@ export class IpcHandlers {
       }
     });
 
+    // 진행 중인 세션 조회
+    ipcMain.handle('get-active-session', async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const dayData = await this.dataService.getWorkRecords(today);
+        
+        if (!dayData) {
+          return { success: true, data: null };
+        }
+
+        // 활성 상태인 세션 찾기
+        const activeSession = dayData.records.find(record => record.isActive);
+        
+        return { success: true, data: activeSession || null };
+      } catch (error) {
+        console.error('Failed to get active session:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
     // 스크린샷 조회
     ipcMain.handle('get-screenshots', async (_, data: { workRecordId?: string }) => {
       try {

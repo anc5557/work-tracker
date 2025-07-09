@@ -53,6 +53,7 @@ export type RendererToMainRequests = {
   'delete-work-record': { id: string };
   'get-work-records': { date?: string };
   'get-work-record': { id: string };
+  'get-active-session': void;
   'get-screenshots': { workRecordId?: string };
   'get-session-screenshots': { sessionId: string };
   'get-work-stats': { timeRange: 'week' | 'month' | 'year' };
