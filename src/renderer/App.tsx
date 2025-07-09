@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppLayout } from './components/layout/app-layout';
 import { Dashboard } from './components/pages/dashboard';
 import { Calendar } from './components/pages/calendar';
