@@ -337,4 +337,131 @@ export class DataService {
       return [];
     }
   }
+
+  /**
+   * Reports 페이지용 상세 업무 통계를 계산합니다.
+   */
+  async getWorkStats(timeRange: 'week' | 'month' | 'year'): Promise<{
+    totalSessions: number;
+    totalHours: number;
+    averageSessionLength: number;
+    mostProductiveDay: string;
+    weeklyHours: number[];
+    dailyAverages: { [key: string]: number };
+  }> {
+    try {
+      // 시간 범위 계산
+      const endDate = new Date();
+      const startDate = new Date();
+      
+      switch (timeRange) {
+        case 'week':
+          startDate.setDate(endDate.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setDate(endDate.getDate() - 30);
+          break;
+        case 'year':
+          startDate.setDate(endDate.getDate() - 365);
+          break;
+      }
+
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      // 해당 기간의 모든 업무 기록 가져오기
+      const dayDataList = await this.getWorkRecordsInRange(startDateStr, endDateStr);
+      
+      // 모든 완료된 세션 수집
+      const completedSessions: WorkRecord[] = [];
+      for (const dayData of dayDataList) {
+        const completed = dayData.records.filter(record => 
+          record.endTime && record.duration && record.duration > 0
+        );
+        completedSessions.push(...completed);
+      }
+
+      // 기본 통계 계산
+      const totalSessions = completedSessions.length;
+      const totalDurationMs = completedSessions.reduce((sum, session) => sum + (session.duration || 0), 0);
+      const totalHours = totalDurationMs / (1000 * 60 * 60); // 밀리초를 시간으로 변환
+      
+      const averageSessionLength = totalSessions > 0 ? totalHours / totalSessions : 0;
+
+      // 요일별 데이터 수집
+      const dayOfWeekData: { [key: number]: number } = {}; // 0=일요일, 1=월요일, ...
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      
+      for (const session of completedSessions) {
+        const sessionDate = new Date(session.startTime);
+        const dayOfWeek = sessionDate.getDay();
+        const sessionHours = (session.duration || 0) / (1000 * 60 * 60);
+        
+        dayOfWeekData[dayOfWeek] = (dayOfWeekData[dayOfWeek] || 0) + sessionHours;
+      }
+
+      // 가장 생산적인 요일 찾기
+      let mostProductiveDay = 'Monday';
+      let maxHours = 0;
+      for (let i = 0; i < 7; i++) {
+        const hours = dayOfWeekData[i] || 0;
+        if (hours > maxHours) {
+          maxHours = hours;
+          mostProductiveDay = dayNames[i];
+        }
+      }
+
+      // 주간 시간 배열 (월~일)
+      const weeklyHours = [
+        dayOfWeekData[1] || 0, // Monday
+        dayOfWeekData[2] || 0, // Tuesday
+        dayOfWeekData[3] || 0, // Wednesday
+        dayOfWeekData[4] || 0, // Thursday
+        dayOfWeekData[5] || 0, // Friday
+        dayOfWeekData[6] || 0, // Saturday
+        dayOfWeekData[0] || 0, // Sunday
+      ];
+
+      // 요일별 평균 계산 (해당 요일이 몇 번 있었는지 고려)
+      const weeksInRange = Math.ceil((endDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      const dailyAverages = {
+        Monday: weeklyHours[0] / Math.max(1, weeksInRange),
+        Tuesday: weeklyHours[1] / Math.max(1, weeksInRange),
+        Wednesday: weeklyHours[2] / Math.max(1, weeksInRange),
+        Thursday: weeklyHours[3] / Math.max(1, weeksInRange),
+        Friday: weeklyHours[4] / Math.max(1, weeksInRange),
+        Saturday: weeklyHours[5] / Math.max(1, weeksInRange),
+        Sunday: weeklyHours[6] / Math.max(1, weeksInRange),
+      };
+
+      return {
+        totalSessions,
+        totalHours,
+        averageSessionLength,
+        mostProductiveDay,
+        weeklyHours,
+        dailyAverages
+      };
+
+    } catch (error) {
+      console.error('Failed to calculate work stats:', error);
+      // 오류 시 기본값 반환
+      return {
+        totalSessions: 0,
+        totalHours: 0,
+        averageSessionLength: 0,
+        mostProductiveDay: 'Monday',
+        weeklyHours: [0, 0, 0, 0, 0, 0, 0],
+        dailyAverages: {
+          Monday: 0,
+          Tuesday: 0,
+          Wednesday: 0,
+          Thursday: 0,
+          Friday: 0,
+          Saturday: 0,
+          Sunday: 0
+        }
+      };
+    }
+  }
 } 

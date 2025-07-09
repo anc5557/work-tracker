@@ -303,24 +303,8 @@ export class IpcHandlers {
     // 업무 통계 조회
     ipcMain.handle('get-work-stats', async (_, data: { timeRange: 'week' | 'month' | 'year' }) => {
       try {
-        // TODO: 실제 통계 계산 로직 구현
-        // 현재는 더미 데이터 반환
-        const stats = {
-          totalSessions: 47,
-          totalHours: 156.5,
-          averageSessionLength: 3.3,
-          mostProductiveDay: 'Tuesday',
-          weeklyHours: [8, 7.5, 9, 6, 8.5, 4, 2],
-          dailyAverages: {
-            Monday: 7.2,
-            Tuesday: 8.1,
-            Wednesday: 6.8,
-            Thursday: 7.5,
-            Friday: 6.2,
-            Saturday: 3.1,
-            Sunday: 2.4
-          }
-        };
+        // 실제 업무 데이터를 기반으로 통계 계산
+        const stats = await this.dataService.getWorkStats(data.timeRange);
         return { success: true, data: stats };
       } catch (error) {
         console.error('Failed to get work stats:', error);
