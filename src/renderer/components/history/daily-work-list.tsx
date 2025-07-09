@@ -21,38 +21,9 @@ export function DailyWorkList() {
     try {
       const result = await window.electronAPI.invoke('get-work-records', { date });
       
-      if (result.success) {
-        // result.data가 배열인 경우 DayWorkSummary 구조로 변환
-        if (Array.isArray(result.data)) {
-          const records = result.data;
-          const totalDuration = records.reduce((total: number, record: WorkRecord) => {
-            return total + (record.duration || 0);
-          }, 0);
-          
-          setTodayData({
-            date,
-            records,
-            totalDuration,
-            totalRecords: records.length
-          });
-        } else if (result.data && typeof result.data === 'object') {
-          // 이미 DayWorkSummary 구조인 경우
-          const data = result.data;
-          setTodayData({
-            date: data.date || date,
-            records: data.records || [],
-            totalDuration: data.totalDuration || 0,
-            totalRecords: data.totalRecords || (data.records ? data.records.length : 0)
-          });
-        } else {
-          // 데이터가 없는 경우
-          setTodayData({
-            date,
-            records: [],
-            totalDuration: 0,
-            totalRecords: 0
-          });
-        }
+      if (result.success && result.data) {
+        // 백엔드에서 DayWorkSummary 구조로 반환
+        setTodayData(result.data);
       } else {
         console.error('Failed to load work records:', result.error);
         setTodayData({

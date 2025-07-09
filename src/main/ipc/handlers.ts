@@ -132,7 +132,21 @@ export class IpcHandlers {
       try {
         const date = data.date || new Date().toISOString().split('T')[0];
         const dayData = await this.dataService.getWorkRecords(date);
-        return { success: true, data: dayData?.records || [] };
+        
+        if (dayData) {
+          return { success: true, data: dayData };
+        } else {
+          // 데이터가 없는 경우 빈 DayWorkSummary 구조 반환
+          return { 
+            success: true, 
+            data: {
+              date,
+              records: [],
+              totalDuration: 0,
+              totalRecords: 0
+            }
+          };
+        }
       } catch (error) {
         console.error('Failed to get work records:', error);
         return { success: false, error: (error as Error).message };
