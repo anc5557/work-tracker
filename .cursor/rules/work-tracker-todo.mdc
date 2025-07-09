@@ -1,34 +1,33 @@
----
-alwaysApply: true
-description: Work Tracker 프로젝트 TODO 및 구현 가이드
----
 
 # Work Tracker 프로젝트 TODO 가이드
 
-## 📊 현재 구현 상태 (70-80% 완료)
+## 📊 현재 구현 상태 (80-85% 완료)
 
 ### ✅ 완료된 핵심 기능
 - **Electron Main Process**: [src/main/index.ts](mdc:src/main/index.ts) - 윈도우, 트레이, 메뉴 완성
 - **스크린샷 서비스**: [src/main/services/screenshot.service.ts](mdc:src/main/services/screenshot.service.ts) - macOS 권한 처리 및 캡처 완료
 - **데이터 서비스**: [src/main/services/data.service.ts](mdc:src/main/services/data.service.ts) - JSON 기반 로컬 저장 완료
-- **IPC 통신**: [src/main/ipc/handlers.ts](mdc:src/main/ipc/handlers.ts) - 완전 구현
+- **IPC 통신**: [src/main/ipc/handlers.ts](mdc:src/main/ipc/handlers.ts) - 완전 구현 (편집/삭제 기능 포함)
 - **기본 UI**: [src/renderer/components/pages/dashboard.tsx](mdc:src/renderer/components/pages/dashboard.tsx) - 타이머 및 업무 시작/종료 완료
+- **Work Record Card**: [src/renderer/components/history/work-record-card.tsx](mdc:src/renderer/components/history/work-record-card.tsx) - 완전 구현 완료 ✨
 
 ## 🎯 구현 우선순위 TODO
 
 ### 1순위 (Critical) - 핵심 기능 완성
 
-#### A. Work Record Card 컴포넌트 구현 ⚠️ 미완성
+#### ✅ A. Work Record Card 컴포넌트 구현 - **완료!**
 **파일**: [src/renderer/components/history/work-record-card.tsx](mdc:src/renderer/components/history/work-record-card.tsx)
-**상태**: 파일은 있지만 실제 구현 필요
-**구현 내용**:
-- 업무 기록 정보 표시 (제목, 시간, 설명)
-- 스크린샷 미리보기 기능
-- 편집/삭제 액션 버튼
-- 진행 상태 표시 (완료/진행중)
-- 클릭 시 세션 상세 페이지로 이동
+**상태**: ✅ 완전 구현 완료
+**완료된 기능**:
+- ✅ 업무 기록 정보 표시 (제목, 시간, 설명)
+- ✅ 스크린샷 미리보기 기능
+- ✅ 편집/삭제 액션 버튼 (호버 시 표시)
+- ✅ 진행 상태 표시 (완료/진행중)
+- ✅ 클릭 시 세션 상세 페이지로 이동
+- ✅ 편집/삭제 다이얼로그 구현
+- ✅ IPC 통신 연동 (편집/삭제 기능)
 
-#### B. App Layout 네비게이션 구현 ⚠️ 미완성
+#### B. App Layout 네비게이션 구현 ⚠️ 미완성 (다음 우선순위)
 **파일**: [src/renderer/components/layout/app-layout.tsx](mdc:src/renderer/components/layout/app-layout.tsx)
 **상태**: 기본 구조만 존재
 **구현 내용**:
@@ -101,11 +100,15 @@ description: Work Tracker 프로젝트 TODO 및 구현 가이드
 
 ## 🛠 구현 가이드
 
-### 다음에 구현할 기능 권장 순서:
-1. **Work Record Card** - 전체 앱 완성도에 가장 큰 영향
-2. **App Layout 네비게이션** - 사용자 경험 향상
-3. **자동 스크린샷 캡처** - 핵심 기능 완성
-4. **Session Details** - 상세 정보 제공
+### 📋 다음에 구현할 기능 권장 순서:
+1. **App Layout 네비게이션** (1순위 B) - 사용자 경험 향상의 핵심
+2. **자동 스크린샷 캡처** (2순위 D) - 핵심 기능 완성
+3. **Session Details** (2순위 C) - Work Record Card와 연동하여 상세 정보 제공
+
+### 🎉 최근 완료 사항 (2024.1):
+- ✅ **Work Record Card 컴포넌트** - 편집/삭제 기능, 세션 상세 이동, 다이얼로그 UI 완성
+- ✅ **IPC 핸들러 확장** - delete-work-record 기능 추가
+- ✅ **데이터 연동** - 실시간 편집/삭제 기능
 
 ### 공통 구현 원칙:
 - shadcn/ui 컴포넌트 사용
