@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
 import type { WorkRecord } from '../../shared/types';
 import { useToast } from '../hooks/use-toast';
 
@@ -24,7 +23,6 @@ export function SessionProvider({ children }: SessionProviderProps) {
   const [currentRecord, setCurrentRecord] = useState<WorkRecord | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const { toast } = useToast();
-  const location = useLocation();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const sessionCheckingRef = useRef(false);
@@ -33,15 +31,6 @@ export function SessionProvider({ children }: SessionProviderProps) {
   useEffect(() => {
     restoreSession();
   }, []);
-
-  // 페이지 이동시 세션 상태 확인
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      checkSession();
-    }, 100); // 페이지 전환 후 잠시 대기
-
-    return () => clearTimeout(timer);
-  }, [location.pathname]);
 
   // Window focus시 세션 상태 확인
   useEffect(() => {
@@ -249,6 +238,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
     </SessionContext.Provider>
   );
 }
+
+
 
 export function useSession() {
   const context = useContext(SessionContext);

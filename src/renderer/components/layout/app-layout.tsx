@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useSession } from '../../contexts/session-context';
+import { usePageChangeDetection } from '../../hooks/use-page-change-detection';
 import { formatDuration } from '../../lib/utils';
 
 interface AppLayoutProps {
@@ -30,6 +31,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const { isWorking, currentRecord, elapsedTime } = useSession();
+  
+  // 페이지 이동시 세션 상태 확인
+  usePageChangeDetection();
   
   const minWidth = 200; // 최소 너비
   const maxWidth = 400; // 최대 너비
