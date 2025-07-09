@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar as CalendarComponent } from '../ui/calendar';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -31,6 +32,7 @@ interface DayData {
 }
 
 export function Calendar() {
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedRange, setSelectedRange] = useState<Date[]>([]);
@@ -292,6 +294,11 @@ export function Calendar() {
   const handleTaskSkip = () => {
     setIsTaskDialogOpen(false);
     setSelectedDateForTask(null);
+  };
+
+  // 세션 클릭 시 디테일 페이지로 이동
+  const handleSessionClick = (sessionId: string) => {
+    navigate(`/session/${sessionId}`);
   };
 
   // 달력 컴포넌트 렌더링
@@ -578,7 +585,11 @@ export function Calendar() {
                       
                       {/* 해당 날짜의 세션들 */}
                       {sessionsByDate[dateString].map((session) => (
-                        <Card key={session.id} className="bg-gray-800/50 border-gray-700 p-4 ml-6">
+                        <Card 
+                          key={session.id} 
+                          className="bg-gray-800/50 border-gray-700 p-4 ml-6 cursor-pointer transition-colors hover:bg-gray-800/70"
+                          onClick={() => handleSessionClick(session.id)}
+                        >
                           <div className="flex items-center space-x-4">
                             <div className="bg-gray-700 p-2 rounded">
                               <Briefcase className="w-4 h-4" />
@@ -613,7 +624,11 @@ export function Calendar() {
               ) : (
                 // 단일 날짜 선택 시 기존 방식
                 workSessions.map((session) => (
-                  <Card key={session.id} className="bg-gray-800 border-gray-700 p-4">
+                  <Card 
+                    key={session.id} 
+                    className="bg-gray-800 border-gray-700 p-4 cursor-pointer transition-colors hover:bg-gray-800/80"
+                    onClick={() => handleSessionClick(session.id)}
+                  >
                     <div className="flex items-center space-x-4">
                       <div className="bg-gray-700 p-2 rounded">
                         <Briefcase className="w-4 h-4" />
