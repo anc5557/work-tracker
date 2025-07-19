@@ -10,6 +10,8 @@ interface SessionContextType {
   stopSession: () => void;
   restoreSession: () => Promise<void>;
   checkSession: () => Promise<void>;
+  endCurrentSessionAndStartNew: (newRecord: WorkRecord) => Promise<void>;
+  endCurrentSession: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -222,6 +224,75 @@ export function SessionProvider({ children }: SessionProviderProps) {
     }
   }, [checkSession, loadSessionFromStorage]);
 
+  const endCurrentSessionAndStartNew = useCallback(async (newRecord: WorkRecord) => {
+    try {
+      console.log('Ending current session and starting new one:', newRecord);
+      
+      // 현재 세션이 있으면 종료
+      if (currentRecord && isWorking) {
+        console.log('Stopping current session:', currentRecord.id);
+        await window.electronAPI.invoke('stop-work', { id: currentRecord.id });
+        
+        toast({
+          title: "이전 작업 종료",
+          description: `"${currentRecord.title}" 작업이 종료되었습니다.`,
+        });
+      }
+      
+      // 새 세션 시작
+      console.log('Starting new session:', newRecord);
+      const result = await window.electronAPI.invoke('start-work', {
+        title: newRecord.title,
+        description: newRecord.description
+      });
+      
+      if (result.success) {
+        startSession(result.data);
+        
+        toast({
+          title: "새 작업 시작",
+          description: `"${newRecord.title}" 작업을 시작했습니다.`,
+        });
+      } else {
+        throw new Error(result.error || '새 세션 시작에 실패했습니다.');
+      }
+      
+    } catch (error) {
+      console.error('Failed to end current session and start new:', error);
+      toast({
+        title: "오류",
+        description: "세션 변경에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
+  }, [currentRecord, isWorking, startSession, toast]);
+
+  const endCurrentSession = useCallback(async () => {
+    try {
+      console.log('Ending current session');
+      
+      if (currentRecord && isWorking) {
+        console.log('Stopping current session:', currentRecord.id);
+        await window.electronAPI.invoke('stop-work', { id: currentRecord.id });
+        
+        stopSession();
+        
+        toast({
+          title: "작업 종료",
+          description: `"${currentRecord.title}" 작업이 종료되었습니다.`,
+        });
+      }
+      
+    } catch (error) {
+      console.error('Failed to end current session:', error);
+      toast({
+        title: "오류",
+        description: "세션 종료에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
+  }, [currentRecord, isWorking, stopSession, toast]);
+
   const value: SessionContextType = {
     isWorking,
     currentRecord,
@@ -229,7 +300,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
     startSession,
     stopSession,
     restoreSession,
-    checkSession
+    checkSession,
+    endCurrentSessionAndStartNew,
+    endCurrentSession
   };
 
   return (

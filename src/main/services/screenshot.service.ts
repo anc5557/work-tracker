@@ -277,6 +277,9 @@ export class ScreenshotService {
         // 스크린샷 캡처 이벤트를 렌더러에 전송
         this.sendToRenderer('screenshot-captured', screenshot);
         
+        // 작업 변경 알림 전송
+        this.sendWorkChangeNotification(screenshot);
+        
         console.log(`Auto screenshot captured: ${screenshot.filePath}`);
         return screenshot;
       }
@@ -285,6 +288,16 @@ export class ScreenshotService {
       console.error('Auto capture failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * 작업 변경 알림을 렌더러에 전송합니다.
+   */
+  private sendWorkChangeNotification(screenshot: ScreenshotData): void {
+    this.sendToRenderer('work-change-notification', {
+      screenshot,
+      timestamp: new Date().toISOString()
+    });
   }
 
   /**

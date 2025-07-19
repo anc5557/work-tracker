@@ -9,6 +9,7 @@ import { SessionDetails } from './components/pages/session-details';
 import { Toaster } from './components/ui/toaster';
 import { SessionProvider } from './contexts/session-context';
 import { ThemeProvider } from './components/theme-provider';
+import { WorkChangeNotificationHandler } from './components/work/work-change-notification-handler';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
             </Routes>
           </AppLayout>
           <Toaster />
+          <WorkChangeNotificationHandler />
         </Router>
       </SessionProvider>
     </ThemeProvider>

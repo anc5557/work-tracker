@@ -63,6 +63,10 @@ export type MainToRendererEvents = {
   'work-record-updated': WorkRecord;
   'error-occurred': { message: string; details?: any };
   'auto-capture-status-changed': AutoCaptureStatus;
+  'work-change-notification': { 
+    screenshot: ScreenshotData; 
+    timestamp: string; 
+  };
 };
 
 // Renderer -> Main 요청

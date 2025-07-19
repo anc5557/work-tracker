@@ -8,16 +8,29 @@ interface TaskInputDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (title: string, description?: string) => void;
   onSkip: () => void;
+  onStartNewSession?: (title: string, description?: string) => void;
+  isSessionChange?: boolean; // 세션 변경 모드인지 여부
 }
 
-export function TaskInputDialog({ open, onOpenChange, onSubmit, onSkip }: TaskInputDialogProps) {
+export function TaskInputDialog({ 
+  open, 
+  onOpenChange, 
+  onSubmit, 
+  onSkip, 
+  onStartNewSession, 
+  isSessionChange = false 
+}: TaskInputDialogProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim()) {
-      onSubmit(title.trim(), description.trim() || undefined);
+      if (isSessionChange && onStartNewSession) {
+        onStartNewSession(title.trim(), description.trim() || undefined);
+      } else {
+        onSubmit(title.trim(), description.trim() || undefined);
+      }
       resetForm();
     }
   };
@@ -47,9 +60,14 @@ export function TaskInputDialog({ open, onOpenChange, onSubmit, onSkip }: TaskIn
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" onKeyDown={handleKeyDown}>
         <DialogHeader>
-          <DialogTitle>업무 내용 입력</DialogTitle>
+          <DialogTitle>
+            {isSessionChange ? '새 작업 시작' : '업무 내용 입력'}
+          </DialogTitle>
           <DialogDescription>
-            지금 어떤 작업을 하고 있습니까? 업무 내용을 입력하거나 건너뛸 수 있습니다.
+            {isSessionChange 
+              ? '새로운 작업을 시작합니다. 이전 작업은 자동으로 종료됩니다.'
+              : '지금 어떤 작업을 하고 있습니까? 업무 내용을 입력하거나 건너뛸 수 있습니다.'
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -104,7 +122,7 @@ export function TaskInputDialog({ open, onOpenChange, onSubmit, onSkip }: TaskIn
               disabled={!title.trim()}
               className="order-1 sm:order-3"
             >
-              시작하기 (Enter)
+              {isSessionChange ? '새 작업 시작 (Enter)' : '시작하기 (Enter)'}
             </Button>
           </DialogFooter>
         </form>
