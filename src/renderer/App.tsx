@@ -8,23 +8,26 @@ import { Settings } from './components/pages/settings';
 import { SessionDetails } from './components/pages/session-details';
 import { Toaster } from './components/ui/toaster';
 import { SessionProvider } from './contexts/session-context';
+import { ThemeProvider } from './components/theme-provider';
 
 function App() {
   return (
-    <SessionProvider>
-      <Router>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/session/:sessionId" element={<SessionDetails />} />
-          </Routes>
-        </AppLayout>
-        <Toaster />
-      </Router>
-    </SessionProvider>
+    <ThemeProvider defaultTheme="system" storageKey="work-tracker-theme">
+      <SessionProvider>
+        <Router>
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/session/:sessionId" element={<SessionDetails />} />
+            </Routes>
+          </AppLayout>
+          <Toaster />
+        </Router>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }
 

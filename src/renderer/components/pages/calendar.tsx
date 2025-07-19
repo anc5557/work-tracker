@@ -346,11 +346,11 @@ export function Calendar() {
           onDoubleClick={() => handleDoubleClick(cellDate, isCurrentMonth)}
           className={`
             relative aspect-square flex flex-col items-center justify-center text-sm cursor-pointer transition-all duration-200 select-none
-            ${isCurrentMonth ? 'text-white hover:bg-gray-700' : 'text-gray-600'}
-            ${isToday ? 'bg-blue-600 text-white rounded-lg shadow-lg' : ''}
-            ${isSelected && !isToday ? 'bg-gray-700 rounded-lg shadow-md' : ''}
-            ${isInRange && !isSelected && !isToday ? 'bg-gradient-to-br from-blue-500/40 to-purple-500/40 rounded border-2 border-blue-400/50' : ''}
-            ${isDragStart && isDragging ? 'bg-blue-500 text-white rounded-lg shadow-lg ring-2 ring-blue-300' : ''}
+            ${isCurrentMonth ? 'text-foreground hover:bg-accent' : 'text-muted-foreground'}
+            ${isToday ? 'bg-primary text-primary-foreground rounded-lg shadow-lg' : ''}
+            ${isSelected && !isToday ? 'bg-accent rounded-lg shadow-md' : ''}
+            ${isInRange && !isSelected && !isToday ? 'bg-gradient-to-br from-primary/40 to-secondary/40 rounded border-2 border-primary/50' : ''}
+            ${isDragStart && isDragging ? 'bg-primary text-primary-foreground rounded-lg shadow-lg ring-2 ring-primary/30' : ''}
             ${isDragging && isInRange ? 'shadow-lg transform scale-105' : ''}
             ${hasWork ? 'font-medium' : ''}
           `}
@@ -376,7 +376,7 @@ export function Calendar() {
           
           {/* 드래그 선택 표시 */}
           {isInRange && selectedRange.length > 1 && !isToday && (
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded border border-blue-300/30 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded border border-primary/30 pointer-events-none" />
           )}
         </div>
       );
@@ -394,7 +394,7 @@ export function Calendar() {
     return (
       <div className="space-y-2">
         {/* 요일 헤더 */}
-        <div className="grid grid-cols-7 gap-1 text-center text-sm font-medium text-gray-400 mb-2">
+        <div className="grid grid-cols-7 gap-1 text-center text-sm font-medium text-muted-foreground mb-2">
           <div>일</div>
           <div>월</div>
           <div>화</div>
@@ -436,31 +436,31 @@ export function Calendar() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8" ref={calendarRef}>
+    <div className="min-h-screen bg-background text-foreground p-8" ref={calendarRef}>
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-semibold">📅 Calendar</h1>
           
           {/* 월별 통계 요약 */}
           <div className="flex space-x-4">
-            <Card className="bg-gray-800 border-gray-700 px-4 py-2">
+            <Card className="px-4 py-2">
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4 text-blue-400" />
-                <span className="text-sm text-gray-300">이번 달</span>
+                <span className="text-sm text-muted-foreground">이번 달</span>
                 <span className="font-medium">{formatDuration(monthStats.totalDuration)}</span>
               </div>
             </Card>
-            <Card className="bg-gray-800 border-gray-700 px-4 py-2">
+            <Card className="px-4 py-2">
               <div className="flex items-center space-x-2">
                 <BarChart3 className="w-4 h-4 text-green-400" />
-                <span className="text-sm text-gray-300">세션</span>
+                <span className="text-sm text-muted-foreground">세션</span>
                 <span className="font-medium">{monthStats.totalSessions}개</span>
               </div>
             </Card>
-            <Card className="bg-gray-800 border-gray-700 px-4 py-2">
+            <Card className="px-4 py-2">
               <div className="flex items-center space-x-2">
                 <CalendarIcon className="w-4 h-4 text-purple-400" />
-                <span className="text-sm text-gray-300">활동일</span>
+                <span className="text-sm text-muted-foreground">활동일</span>
                 <span className="font-medium">{monthStats.totalDays}일</span>
               </div>
             </Card>
@@ -473,7 +473,7 @@ export function Calendar() {
             variant="ghost"
             size="sm"
             onClick={() => navigateMonth('prev')}
-            className="text-gray-300 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -485,28 +485,28 @@ export function Calendar() {
             variant="ghost"
             size="sm"
             onClick={() => navigateMonth('next')}
-            className="text-gray-300 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
 
         {/* 범례 */}
-        <div className="flex items-center justify-center space-x-6 text-sm text-gray-400 mb-4">
+        <div className="flex items-center justify-center space-x-6 text-sm text-muted-foreground mb-4">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-green-400 rounded-full" />
             <span>업무 있음</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-600 rounded-lg" />
+            <div className="w-3 h-3 bg-primary rounded-lg" />
             <span>오늘</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-gray-700 rounded-lg" />
+            <div className="w-3 h-3 bg-accent rounded-lg" />
             <span>선택됨</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-gradient-to-br from-blue-500 to-purple-500 rounded border border-blue-400" />
+            <div className="w-3 h-3 bg-gradient-to-br from-primary to-secondary rounded border border-primary" />
             <span>드래그 범위</span>
           </div>
           <span>💡 더블클릭: 업무 추가 | 드래그: 범위 선택</span>
@@ -514,11 +514,11 @@ export function Calendar() {
 
         {/* Calendar Grid */}
         <div className="grid grid-cols-2 gap-8 mb-8">
-          <Card className="bg-gray-800 border-gray-700 p-6">
+          <Card className="p-6">
             <h3 className="text-lg font-medium mb-4 text-center">{getCurrentMonth()}</h3>
             {renderCalendar(0)}
           </Card>
-          <Card className="bg-gray-800 border-gray-700 p-6">
+          <Card className="p-6">
             <h3 className="text-lg font-medium mb-4 text-center">{getNextMonth()}</h3>
             {renderCalendar(1)}
           </Card>
@@ -529,14 +529,14 @@ export function Calendar() {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold">업무 세션</h2>
             {selectedRange.length > 1 && (
-              <Badge variant="secondary" className="bg-blue-600 text-white">
+              <Badge variant="secondary" className="bg-primary text-primary-foreground">
                 {selectedRange.length}일 선택됨
               </Badge>
             )}
           </div>
           
           {selectedDate && (
-            <p className="text-gray-400 mb-4">
+            <p className="text-muted-foreground mb-4">
               {selectedDate.toLocaleDateString('ko-KR', { 
                 weekday: 'long', 
                 year: 'numeric', 
@@ -577,8 +577,8 @@ export function Calendar() {
                             weekday: 'short'
                           })}
                         </h3>
-                        <div className="flex-1 h-px bg-gray-700" />
-                        <span className="text-xs text-gray-500">
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-xs text-muted-foreground">
                           {sessionsByDate[dateString].length}개 세션
                         </span>
                       </div>
@@ -587,16 +587,16 @@ export function Calendar() {
                       {sessionsByDate[dateString].map((session) => (
                         <Card 
                           key={session.id} 
-                          className="bg-gray-800/50 border-gray-700 p-4 ml-6 cursor-pointer transition-colors hover:bg-gray-800/70"
+                          className="p-4 ml-6 cursor-pointer transition-colors hover:bg-accent"
                           onClick={() => handleSessionClick(session.id)}
                         >
                           <div className="flex items-center space-x-4">
-                            <div className="bg-gray-700 p-2 rounded">
+                            <div className="bg-muted p-2 rounded">
                               <Briefcase className="w-4 h-4" />
                             </div>
                             <div className="flex-1">
                               <h4 className="font-medium">{session.title}</h4>
-                              <p className="text-sm text-gray-400">
+                              <p className="text-sm text-muted-foreground">
                                 {formatTime(session.startTime)} - {session.endTime ? formatTime(session.endTime) : '진행 중'}
                                 {session.duration && (
                                   <span className="ml-2 text-green-400">
@@ -605,7 +605,7 @@ export function Calendar() {
                                 )}
                               </p>
                               {session.description && (
-                                <p className="text-sm text-gray-500 mt-1">{session.description}</p>
+                                <p className="text-sm text-muted-foreground mt-1">{session.description}</p>
                               )}
                             </div>
                             <div className="flex space-x-1">
@@ -626,16 +626,16 @@ export function Calendar() {
                 workSessions.map((session) => (
                   <Card 
                     key={session.id} 
-                    className="bg-gray-800 border-gray-700 p-4 cursor-pointer transition-colors hover:bg-gray-800/80"
+                    className="p-4 cursor-pointer transition-colors hover:bg-accent"
                     onClick={() => handleSessionClick(session.id)}
                   >
                     <div className="flex items-center space-x-4">
-                      <div className="bg-gray-700 p-2 rounded">
+                      <div className="bg-muted p-2 rounded">
                         <Briefcase className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium">{session.title}</h3>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           {formatTime(session.startTime)} - {session.endTime ? formatTime(session.endTime) : '진행 중'}
                           {session.duration && (
                             <span className="ml-2 text-green-400">
@@ -644,7 +644,7 @@ export function Calendar() {
                           )}
                         </p>
                         {session.description && (
-                          <p className="text-sm text-gray-500 mt-1">{session.description}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{session.description}</p>
                         )}
                       </div>
                       <div className="flex space-x-1">
@@ -659,9 +659,9 @@ export function Calendar() {
                 ))
               )
             ) : (
-              <Card className="bg-gray-800 border-gray-700 p-8 text-center text-gray-400">
+              <Card className="p-8 text-center text-muted-foreground">
                 <div className="space-y-2">
-                  <CalendarIcon className="w-8 h-8 mx-auto text-gray-600" />
+                  <CalendarIcon className="w-8 h-8 mx-auto text-muted-foreground" />
                   <p>선택된 날짜에 작업 세션이 없습니다</p>
                   <p className="text-sm">날짜를 더블클릭하여 새 업무를 추가하세요</p>
                   {selectedRange.length > 1 && (

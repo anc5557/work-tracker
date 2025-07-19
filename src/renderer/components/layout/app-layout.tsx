@@ -112,7 +112,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const currentSidebarWidth = sidebarCollapsed ? 80 : sidebarWidth;
 
   return (
-    <div className="flex h-screen bg-gray-900 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* 모바일 오버레이 */}
       {sidebarOpen && (
         <div 
@@ -125,7 +125,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <aside 
         ref={sidebarRef}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 bg-gray-800 border-r border-gray-700 transform transition-all duration-300 ease-in-out lg:translate-x-0 app-sidebar",
+          "fixed inset-y-0 left-0 z-50 bg-card border-r border-border transform transition-all duration-300 ease-in-out lg:translate-x-0 app-sidebar",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
         style={{
@@ -135,18 +135,18 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         <div className="flex flex-col h-full">
           {/* 사이드바 헤더 */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-700 flex-shrink-0">
+          <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
             <div className={cn(
               "flex items-center space-x-2 transition-opacity duration-200",
               sidebarCollapsed ? "opacity-0 lg:opacity-0" : "opacity-100"
             )}>
-              <div className="text-white">
+              <div className="text-foreground">
                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                 </svg>
               </div>
               {!sidebarCollapsed && (
-                <span className="text-white text-lg font-semibold truncate">Work Tracker</span>
+                <span className="text-foreground text-lg font-semibold truncate">Work Tracker</span>
               )}
             </div>
             
@@ -154,7 +154,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="hidden lg:flex text-gray-400 hover:text-white p-1.5"
+              className="hidden lg:flex text-muted-foreground hover:text-foreground p-1.5"
               onClick={toggleCollapse}
               title={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
             >
@@ -169,7 +169,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden text-gray-400 hover:text-white"
+              className="lg:hidden text-muted-foreground hover:text-foreground"
               onClick={closeSidebar}
             >
               <X className="w-5 h-5" />
@@ -188,8 +188,8 @@ export function AppLayout({ children }: AppLayoutProps) {
                       "flex items-center rounded-lg text-sm font-medium transition-colors group relative",
                       sidebarCollapsed ? "justify-center px-3 py-3" : "space-x-3 px-3 py-2",
                       isActive(path)
-                        ? "text-white bg-blue-600"
-                        : "text-gray-300 hover:text-white hover:bg-gray-700"
+                        ? "text-primary-foreground bg-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
                     )}
                     title={sidebarCollapsed ? label : undefined}
                   >
@@ -198,9 +198,9 @@ export function AppLayout({ children }: AppLayoutProps) {
                     
                     {/* 접혔을 때 툴팁 */}
                     {sidebarCollapsed && (
-                      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 whitespace-nowrap">
+                      <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 whitespace-nowrap border">
                         {label}
-                        <div className="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900"></div>
+                        <div className="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-popover"></div>
                       </div>
                     )}
                   </Link>
@@ -211,16 +211,16 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           {/* 세션 상태 표시 */}
           {!sidebarCollapsed && isWorking && currentRecord && (
-            <div className="p-4 border-t border-gray-700 bg-green-900/20 flex-shrink-0">
+            <div className="p-4 border-t border-border bg-green-50 dark:bg-green-950/20 flex-shrink-0">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-gray-300 font-medium">진행 중</span>
+                  <span className="text-xs text-muted-foreground font-medium">진행 중</span>
                 </div>
-                <div className="text-sm text-white font-semibold truncate">
+                <div className="text-sm text-foreground font-semibold truncate">
                   {currentRecord.title}
                 </div>
-                <div className="flex items-center gap-1 text-xs text-gray-300">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="w-3 h-3" />
                   <span className="font-mono">{formatDuration(elapsedTime)}</span>
                 </div>
@@ -230,7 +230,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           {/* 접힌 상태에서 세션 인디케이터 */}
           {sidebarCollapsed && isWorking && (
-            <div className="p-3 border-t border-gray-700 flex-shrink-0">
+            <div className="p-3 border-t border-border flex-shrink-0">
               <div className="flex justify-center">
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" title="작업 진행 중"></div>
               </div>
@@ -239,8 +239,8 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           {/* 사이드바 푸터 */}
           {!sidebarCollapsed && (
-            <div className="p-4 border-t border-gray-700 flex-shrink-0">
-              <div className="text-xs text-gray-400 text-center">
+            <div className="p-4 border-t border-border flex-shrink-0">
+              <div className="text-xs text-muted-foreground text-center">
                 Work Tracker v1.0
               </div>
             </div>
@@ -250,12 +250,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* 리사이즈 핸들 - 데스크톱에서만 표시하고 접힌 상태가 아닐 때만 */}
         {!sidebarCollapsed && (
           <div
-            className="absolute top-0 right-0 w-1 h-full cursor-ew-resize bg-transparent hover:bg-blue-500/30 transition-colors duration-200 hidden lg:block group app-no-drag"
+            className="absolute top-0 right-0 w-1 h-full cursor-ew-resize bg-transparent hover:bg-primary/30 transition-colors duration-200 hidden lg:block group app-no-drag"
             onMouseDown={handleMouseDown}
             title="드래그해서 사이드바 크기 조정"
           >
             {/* 시각적 인디케이터 */}
-            <div className="absolute top-1/2 right-0 transform -translate-y-1/2 w-1 h-8 bg-gray-600 rounded-l-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+            <div className="absolute top-1/2 right-0 transform -translate-y-1/2 w-1 h-8 bg-border rounded-l-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
           </div>
         )}
       </aside>
@@ -268,13 +268,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         }}
       >
         {/* 고정 헤더 */}
-        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 lg:px-6 lg:py-4 app-no-drag flex-shrink-0">
+        <header className="bg-card border-b border-border px-4 py-3 lg:px-6 lg:py-4 app-no-drag flex-shrink-0">
           <div className="flex items-center justify-between">
             {/* 모바일 메뉴 버튼 */}
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden text-gray-300 hover:text-white app-no-drag"
+              className="lg:hidden text-muted-foreground hover:text-foreground app-no-drag"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="w-5 h-5" />
@@ -282,7 +282,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
             {/* 헤더 타이틀 (현재 페이지) - 이 부분만 드래그 가능 */}
             <div className="flex-1 lg:flex lg:items-center lg:justify-center app-header">
-              <h1 className="text-white text-lg font-semibold ml-4 lg:ml-0 cursor-default select-none">
+              <h1 className="text-foreground text-lg font-semibold ml-4 lg:ml-0 cursor-default select-none">
                 {navItems.find(item => isActive(item.path))?.label || 'Dashboard'}
               </h1>
             </div>
@@ -295,7 +295,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </header>
 
         {/* 스크롤 가능한 메인 콘텐츠 */}
-        <main className="flex-1 p-6 bg-gray-900 app-main-content overflow-y-auto">
+        <main className="flex-1 p-6 bg-background app-main-content overflow-y-auto">
           {children}
         </main>
       </div>

@@ -78,7 +78,7 @@ export function Reports() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-8">
+      <div className="min-h-screen bg-background text-foreground p-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center py-8">Loading...</div>
         </div>
@@ -87,7 +87,7 @@ export function Reports() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-semibold">Reports</h1>
@@ -98,8 +98,8 @@ export function Reports() {
                 onClick={() => setTimeRange(range)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   timeRange === range
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 }`}
               >
                 {range.charAt(0).toUpperCase() + range.slice(1)}
@@ -110,53 +110,53 @@ export function Reports() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-gray-800 border-gray-700">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Total Sessions</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Sessions</CardTitle>
               <BarChart3 className="h-4 w-4 text-blue-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{stats?.totalSessions}</div>
-              <p className="text-xs text-gray-400">
+              <div className="text-2xl font-bold text-foreground">{stats?.totalSessions}</div>
+              <p className="text-xs text-muted-foreground">
                 +12% from last {timeRange}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-800 border-gray-700">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Total Hours</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Hours</CardTitle>
               <Clock className="h-4 w-4 text-green-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{formatHours(stats?.totalHours || 0)}</div>
-              <p className="text-xs text-gray-400">
+              <div className="text-2xl font-bold text-foreground">{formatHours(stats?.totalHours || 0)}</div>
+              <p className="text-xs text-muted-foreground">
                 +8% from last {timeRange}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-800 border-gray-700">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Avg Session</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Avg Session</CardTitle>
               <TrendingUp className="h-4 w-4 text-purple-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{formatHours(stats?.averageSessionLength || 0)}</div>
-              <p className="text-xs text-gray-400">
+              <div className="text-2xl font-bold text-foreground">{formatHours(stats?.averageSessionLength || 0)}</div>
+              <p className="text-xs text-muted-foreground">
                 +5% from last {timeRange}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-800 border-gray-700">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Most Productive</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Most Productive</CardTitle>
               <Calendar className="h-4 w-4 text-orange-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{stats?.mostProductiveDay}</div>
-              <p className="text-xs text-gray-400">
+              <div className="text-2xl font-bold text-foreground">{stats?.mostProductiveDay}</div>
+              <p className="text-xs text-muted-foreground">
                 Best day this {timeRange}
               </p>
             </CardContent>
@@ -164,9 +164,9 @@ export function Reports() {
         </div>
 
         {/* Weekly Hours Chart */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-white">Weekly Hours</CardTitle>
+            <CardTitle className="text-foreground">Weekly Hours</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -177,14 +177,14 @@ export function Reports() {
                 
                 return (
                   <div key={index} className="flex items-center space-x-4">
-                    <div className="w-8 text-sm text-gray-400">{days[index]}</div>
-                    <div className="flex-1 bg-gray-700 rounded-full h-3">
+                    <div className="w-8 text-sm text-muted-foreground">{days[index]}</div>
+                    <div className="flex-1 bg-muted rounded-full h-3">
                       <div 
-                        className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+                        className="bg-primary h-3 rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    <div className="w-12 text-sm text-gray-300 text-right">{formatHours(hours)}</div>
+                    <div className="w-12 text-sm text-muted-foreground text-right">{formatHours(hours)}</div>
                   </div>
                 );
               })}
@@ -193,16 +193,16 @@ export function Reports() {
         </Card>
 
         {/* Daily Averages */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-white">Daily Averages</CardTitle>
+            <CardTitle className="text-foreground">Daily Averages</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
               {Object.entries(stats?.dailyAverages || {}).map(([day, hours]) => (
                 <div key={day} className="text-center">
-                  <div className="text-xs text-gray-400 mb-1">{day.slice(0, 3)}</div>
-                  <div className="text-lg font-semibold text-white">{formatHours(hours)}</div>
+                  <div className="text-xs text-muted-foreground mb-1">{day.slice(0, 3)}</div>
+                  <div className="text-lg font-semibold text-foreground">{formatHours(hours)}</div>
                 </div>
               ))}
             </div>
