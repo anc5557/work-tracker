@@ -49,6 +49,7 @@ export function SessionDetails() {
   const [editDescription, setEditDescription] = useState('');
   const [selectedScreenshot, setSelectedScreenshot] = useState<Screenshot | null>(null);
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     if (sessionId) {
@@ -72,7 +73,7 @@ export function SessionDetails() {
           description: "세션 정보를 불러올 수 없습니다.",
           variant: "destructive",
         });
-        navigate('/calendar');
+        navigate(-1);
         return;
       }
       
@@ -189,6 +190,31 @@ export function SessionDetails() {
     setIsImageDialogOpen(true);
   };
 
+  const handleDeleteSession = async () => {
+    if (!session) return;
+    
+    try {
+      // 세션 삭제 API 호출
+      const result = await window.electronAPI.invoke('delete-work-record', { id: session.id });
+      if (result.success) {
+        toast({
+          title: "삭제 완료",
+          description: "세션과 스크린샷이 삭제되었습니다.",
+        });
+        navigate(-1);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      toast({
+        title: "삭제 실패",
+        description: "세션 삭제 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
       year: 'numeric',
@@ -258,9 +284,9 @@ export function SessionDetails() {
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-4">
               <p className="text-lg text-muted-foreground">세션을 찾을 수 없습니다</p>
-              <Button onClick={() => navigate('/calendar')} variant="outline">
+              <Button onClick={() => navigate(-1)} variant="outline">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                캘린더로 돌아가기
+                뒤로 가기
               </Button>
             </div>
           </div>
@@ -278,7 +304,7 @@ export function SessionDetails() {
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => navigate('/calendar')}
+              onClick={() => navigate(-1)}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -293,15 +319,26 @@ export function SessionDetails() {
           
           <div className="flex items-center gap-2">
             {!isEditing ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2"
-              >
-                <Edit3 className="w-4 h-4" />
-                편집
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  편집
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  삭제
+                </Button>
+              </>
             ) : (
               <div className="flex items-center gap-2">
                 <Button
@@ -679,6 +716,47 @@ export function SessionDetails() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-destructive/10 rounded-full flex items-center justify-center">
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </div>
+              세션 삭제 확인
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              진짜로 이 세션을 삭제하시겠습니까?
+              <br />
+              <span className="font-medium text-destructive">스크린샷도 함께 삭제됩니다.</span>
+              <br />
+              <br />
+              이 작업은 되돌릴 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                handleDeleteSession();
+              }}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              삭제
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

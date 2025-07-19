@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { WorkTimer } from '../work/work-timer';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -8,6 +9,7 @@ import type { WorkRecord } from '../../../shared/types';
 import { Calendar, Clock, CheckCircle } from 'lucide-react';
 
 export function Dashboard() {
+  const navigate = useNavigate();
   const [todaysSessions, setTodaysSessions] = useState<WorkRecord[]>([]);
   const { isWorking } = useSession();
 
@@ -41,6 +43,11 @@ export function Dashboard() {
   const totalDuration = completedSessions.reduce((total, session) => {
     return total + (session.duration || 0);
   }, 0);
+
+  // 세션 클릭 시 디테일 페이지로 이동
+  const handleSessionClick = (sessionId: string) => {
+    navigate(`/session/${sessionId}`);
+  };
 
   return (
     <div className="space-y-8">
@@ -113,8 +120,12 @@ export function Dashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {todaysSessions.map((session, index) => (
-                  <div key={session.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                {todaysSessions.map((session) => (
+                  <div 
+                    key={session.id} 
+                    className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer transition-colors hover:bg-accent"
+                    onClick={() => handleSessionClick(session.id)}
+                  >
                     <div className="flex-1">
                       <h4 className="font-medium text-foreground">{session.title}</h4>
                       {session.description && (

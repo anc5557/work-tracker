@@ -1,4 +1,4 @@
-import { writeFile, readFile, mkdir, readdir, stat } from 'fs/promises';
+import { writeFile, readFile, mkdir, readdir, stat, unlink } from 'fs/promises';
 import { join, dirname } from 'path';
 import { existsSync } from 'fs';
 import type { WorkRecord, DayWorkSummary, AppConfig } from '@/shared/types';
@@ -158,6 +158,14 @@ export class DataService {
       if (!dayData) {
         return false;
       }
+
+      const recordToDelete = dayData.records.find(r => r.id === recordId);
+      if (!recordToDelete) {
+        return false; // 삭제할 기록이 없었음
+      }
+
+      // 관련 스크린샷 삭제
+      await this.deleteSessionScreenshots(recordId);
 
       const initialLength = dayData.records.length;
       dayData.records = dayData.records.filter(r => r.id !== recordId);
@@ -335,6 +343,35 @@ export class DataService {
     } catch (error) {
       console.error('Failed to get session screenshots:', error);
       return [];
+    }
+  }
+
+  /**
+   * 세션과 관련된 모든 스크린샷을 삭제합니다.
+   */
+  async deleteSessionScreenshots(sessionId: string): Promise<void> {
+    try {
+      // 세션의 스크린샷 목록 조회
+      const screenshots = await this.getSessionScreenshots(sessionId);
+      
+      // 각 스크린샷 파일 삭제
+      for (const screenshot of screenshots) {
+        try {
+          if (existsSync(screenshot.path)) {
+            await unlink(screenshot.path);
+            console.log(`Deleted screenshot: ${screenshot.path}`);
+          }
+        } catch (error) {
+          console.error(`Failed to delete screenshot ${screenshot.path}:`, error);
+          // 개별 파일 삭제 실패는 무시하고 계속 진행
+        }
+      }
+
+      console.log(`Deleted ${screenshots.length} screenshots for session ${sessionId}`);
+
+    } catch (error) {
+      console.error('Failed to delete session screenshots:', error);
+      // 스크린샷 삭제 실패는 세션 삭제를 막지 않음
     }
   }
 
