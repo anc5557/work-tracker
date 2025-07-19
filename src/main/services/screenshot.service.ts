@@ -1,5 +1,5 @@
 import { desktopCapturer, nativeImage, systemPreferences, BrowserWindow } from 'electron';
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type { ScreenshotData, AutoCaptureStatus } from '@/shared/types';
@@ -177,7 +177,7 @@ export class ScreenshotService {
   /**
    * 자동 캡처를 시작합니다.
    */
-  async startAutoCapture(sessionId: string, intervalMinutes: number = 5): Promise<boolean> {
+  async startAutoCapture(sessionId: string, intervalMinutes: number = 5, existingCount: number = 0): Promise<boolean> {
     try {
       // 이미 실행 중인 자동 캡처가 있다면 정지
       if (this.autoCaptureTimer) {
@@ -195,13 +195,13 @@ export class ScreenshotService {
 
       const intervalMs = intervalMinutes * 60 * 1000; // 분을 밀리초로 변환
       
-      // 상태 업데이트
+      // 상태 업데이트 - 기존 스크린샷 수를 포함
       this.autoCaptureStatus = {
         isActive: true,
         sessionId,
         interval: intervalMinutes,
         nextCaptureTime: new Date(Date.now() + intervalMs).toISOString(),
-        totalCaptured: 0
+        totalCaptured: existingCount
       };
 
       // 자동 캡처 타이머 시작
@@ -214,7 +214,7 @@ export class ScreenshotService {
         }
       }, intervalMs);
 
-      console.log(`Auto capture started for session ${sessionId}, interval: ${intervalMinutes} minutes`);
+      console.log(`Auto capture started for session ${sessionId}, interval: ${intervalMinutes} minutes, existing screenshots: ${existingCount}`);
       
       // 상태 변경을 렌더러에 알림
       this.notifyStatusChange();
@@ -284,6 +284,16 @@ export class ScreenshotService {
     } catch (error) {
       console.error('Auto capture failed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 수동 스크린샷 캡처 시 카운트를 증가시킵니다.
+   */
+  incrementCaptureCount(): void {
+    if (this.autoCaptureStatus.isActive) {
+      this.autoCaptureStatus.totalCaptured++;
+      this.notifyStatusChange();
     }
   }
 

@@ -22,9 +22,22 @@ export class IpcHandlers {
 
   private setupHandlers(): void {
     // 스크린샷 캡처
-    ipcMain.handle('capture-screenshot', async () => {
+    ipcMain.handle('capture-screenshot', async (_, data?: { sessionId?: string }) => {
       try {
         const screenshot = await this.screenshotService.captureFullScreen();
+        
+        // 세션 ID가 제공된 경우 수동 캡처임을 표시하고 세션과 연결
+        if (screenshot && data?.sessionId) {
+          screenshot.workRecordId = data.sessionId;
+          screenshot.isAutoCapture = false; // 수동 캡처임을 명시
+          
+          // 자동 캡처가 활성화된 상태에서 수동 캡처가 이루어진 경우 카운트 증가
+          const autoCaptureStatus = this.screenshotService.getAutoCaptureStatus();
+          if (autoCaptureStatus.isActive && autoCaptureStatus.sessionId === data.sessionId) {
+            this.screenshotService.incrementCaptureCount();
+          }
+        }
+        
         return { success: true, data: screenshot };
       } catch (error) {
         console.error('Screenshot capture failed:', error);
@@ -366,7 +379,11 @@ export class IpcHandlers {
     // 자동 캡처 관련 핸들러
     ipcMain.handle('start-auto-capture', async (_, data: { sessionId: string; interval: number }) => {
       try {
-        const success = await this.screenshotService.startAutoCapture(data.sessionId, data.interval);
+        // 기존 스크린샷 수 계산
+        const existingScreenshots = await this.dataService.getSessionScreenshots(data.sessionId);
+        const existingCount = existingScreenshots.length;
+        
+        const success = await this.screenshotService.startAutoCapture(data.sessionId, data.interval, existingCount);
         if (success) {
           return { success: true, data: this.screenshotService.getAutoCaptureStatus() };
         } else {

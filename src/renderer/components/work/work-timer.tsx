@@ -22,6 +22,26 @@ export function WorkTimer() {
     loadAutoCaptureStatus();
   }, []);
 
+  // 스크린샷 캡처 이벤트 리스너 추가
+  useEffect(() => {
+    const handleScreenshotCaptured = () => {
+      // 스크린샷이 캡처되면 자동 캡처 상태 새로고침
+      loadAutoCaptureStatus();
+    };
+
+    const handleAutoCaptureStatusChanged = (status: AutoCaptureStatus) => {
+      setAutoCaptureStatus(status);
+    };
+
+    window.electronAPI.on('screenshot-captured', handleScreenshotCaptured);
+    window.electronAPI.on('auto-capture-status-changed', handleAutoCaptureStatusChanged);
+
+    return () => {
+      window.electronAPI.removeAllListeners('screenshot-captured');
+      window.electronAPI.removeAllListeners('auto-capture-status-changed');
+    };
+  }, []);
+
   const loadSettings = async () => {
     try {
       const result = await window.electronAPI.invoke('load-settings');
