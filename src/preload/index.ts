@@ -24,7 +24,7 @@ export interface ElectronAPI {
   
   // 파일 시스템
   openExternal(url: string): Promise<void>;
-  showItemInFolder(path: string): void;
+  showItemInFolder(path: string): Promise<any>;
 }
 
 // Context Bridge로 API 노출

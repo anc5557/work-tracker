@@ -1,4 +1,7 @@
 import { ipcMain, shell, BrowserWindow, dialog } from 'electron';
+import { spawn } from 'child_process';
+import { existsSync, readFile } from 'fs';
+import { promisify } from 'util';
 import { ScreenshotService } from '../services/screenshot.service';
 import { DataService } from '../services/data.service';
 import { SettingsService } from '../services/settings.service';
@@ -216,7 +219,26 @@ export class IpcHandlers {
     // 스크린샷 열기
     ipcMain.handle('open-screenshot', async (_, data: { path: string }) => {
       try {
-        await shell.openPath(data.path);
+        // 파일 존재 여부 확인
+        if (!existsSync(data.path)) {
+          return { success: false, error: '스크린샷 파일을 찾을 수 없습니다.' };
+        }
+
+        // 파일 열기 시도
+        const result = await shell.openPath(data.path);
+        
+        // openPath는 에러가 있을 때 빈 문자열이 아닌 에러 메시지를 반환함
+        if (result) {
+          // 에러가 있는 경우, 시스템 기본 이미지 뷰어로 열기 시도
+          if (process.platform === 'darwin') {
+            spawn('open', [data.path], { detached: true });
+          } else if (process.platform === 'win32') {
+            spawn('explorer', [data.path], { detached: true });
+          } else {
+            spawn('xdg-open', [data.path], { detached: true });
+          }
+        }
+        
         return { success: true };
       } catch (error) {
         console.error('Failed to open screenshot:', error);
@@ -407,6 +429,32 @@ export class IpcHandlers {
         return { success: true, data: settings };
       } catch (error) {
         console.error('Failed to get default settings:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    // 이미지 로드 핸들러
+    ipcMain.handle('load-image', async (_, imagePath: string) => {
+      try {
+        if (!existsSync(imagePath)) {
+          return { success: false, error: '이미지 파일을 찾을 수 없습니다.' };
+        }
+
+        const readFileAsync = promisify(readFile);
+        const buffer = await readFileAsync(imagePath);
+        const base64Data = buffer.toString('base64');
+        const mimeType = imagePath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+        
+        return { 
+          success: true, 
+          data: {
+            base64: base64Data,
+            mimeType: mimeType,
+            dataUrl: `data:${mimeType};base64,${base64Data}`
+          }
+        };
+      } catch (error) {
+        console.error('Failed to load image:', error);
         return { success: false, error: (error as Error).message };
       }
     });

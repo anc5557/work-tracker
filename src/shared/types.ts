@@ -81,6 +81,7 @@ export type RendererToMainRequests = {
   'get-month-stats': { year: number; month: number };
   'open-screenshot': { path: string };
   'open-folder-dialog': void;
+  'load-image': string;
   // 자동 캡처 관련
   'start-auto-capture': { sessionId: string; interval: number };
   'stop-auto-capture': void;

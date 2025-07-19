@@ -33,6 +33,7 @@ interface Screenshot {
   filename: string;
   path: string;
   timestamp: string;
+  imageData?: string; // base64 이미지 데이터
 }
 
 export function SessionDetails() {
@@ -78,7 +79,21 @@ export function SessionDetails() {
       // 스크린샷 정보 로드
       const screenshotsResult = await window.electronAPI.invoke('get-session-screenshots', { sessionId: id });
       if (screenshotsResult.success) {
-        setScreenshots(screenshotsResult.data);
+        // 각 스크린샷의 이미지 데이터도 로드
+        const screenshotsWithImages = await Promise.all(
+          screenshotsResult.data.map(async (screenshot: Screenshot) => {
+            try {
+              const imageResult = await window.electronAPI.invoke('load-image', screenshot.path);
+              if (imageResult.success) {
+                return { ...screenshot, imageData: imageResult.data.dataUrl };
+              }
+            } catch (error) {
+              console.warn('Failed to load image for screenshot:', screenshot.path, error);
+            }
+            return screenshot;
+          })
+        );
+        setScreenshots(screenshotsWithImages);
       }
     } catch (error) {
       console.error('Failed to load session details:', error);
@@ -125,7 +140,20 @@ export function SessionDetails() {
 
   const handleOpenScreenshot = async (screenshot: Screenshot) => {
     try {
-      await window.electronAPI.invoke('open-screenshot', { path: screenshot.path });
+      const result = await window.electronAPI.invoke('open-screenshot', { path: screenshot.path });
+      if (!result.success) {
+        toast({
+          title: "스크린샷 열기 실패",
+          description: result.error || "스크린샷을 열 수 없습니다.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "스크린샷 열기",
+          description: "스크린샷이 외부 앱에서 열렸습니다.",
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error('Failed to open screenshot:', error);
       toast({
@@ -138,7 +166,14 @@ export function SessionDetails() {
 
   const handleShowInFolder = async (screenshot: Screenshot) => {
     try {
-      await window.electronAPI.showItemInFolder(screenshot.path);
+      const result = await window.electronAPI.showItemInFolder(screenshot.path);
+      if (!result.success) {
+        toast({
+          title: "폴더 열기 실패",
+          description: result.error || "폴더를 열 수 없습니다.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Failed to show in folder:', error);
       toast({
@@ -410,12 +445,21 @@ export function SessionDetails() {
                       key={screenshot.id}
                       className="group relative bg-card rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 hover:shadow-lg transition-all duration-200 border border-border/50"
                     >
-                      {/* Preview placeholder */}
-                      <div className="aspect-video bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 flex items-center justify-center relative">
-                        <ImageIcon className="w-8 h-8 text-muted-foreground/70" />
-                        
-                        {/* Decorative pattern */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-background/5 to-background/10"></div>
+                      {/* Image preview */}
+                      <div className="aspect-video bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 flex items-center justify-center relative overflow-hidden">
+                        {screenshot.imageData ? (
+                          <img 
+                            src={screenshot.imageData} 
+                            alt={`스크린샷 ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <>
+                            <ImageIcon className="w-8 h-8 text-muted-foreground/70" />
+                            {/* Decorative pattern */}
+                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-background/5 to-background/10"></div>
+                          </>
+                        )}
                       </div>
                       
                       {/* Overlay with actions */}
@@ -591,17 +635,25 @@ export function SessionDetails() {
           
           {selectedScreenshot && (
             <div className="space-y-6">
-              {/* Image placeholder */}
-              <div className="w-full h-96 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl flex items-center justify-center border border-border shadow-inner">
-                <div className="text-center space-y-3">
-                  <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
-                    <ImageIcon className="w-10 h-10 text-primary" />
+              {/* Image display */}
+              <div className="w-full h-96 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl flex items-center justify-center border border-border shadow-inner overflow-hidden">
+                {selectedScreenshot.imageData ? (
+                  <img 
+                    src={selectedScreenshot.imageData} 
+                    alt={selectedScreenshot.filename}
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="text-center space-y-3">
+                    <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
+                      <ImageIcon className="w-10 h-10 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-base font-medium text-foreground">스크린샷 미리보기</p>
+                      <p className="text-sm text-muted-foreground">{selectedScreenshot.filename}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-base font-medium text-foreground">스크린샷 미리보기</p>
-                    <p className="text-sm text-muted-foreground">{selectedScreenshot.filename}</p>
-                  </div>
-                </div>
+                )}
               </div>
               
               {/* Image info */}

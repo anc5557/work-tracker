@@ -27,7 +27,10 @@ export function WorkRecordCard({ record, onUpdate, onDelete, onEdit }: WorkRecor
   const handleOpenScreenshot = async () => {
     if (record.screenshotPath) {
       try {
-        await window.electronAPI.invoke('open-screenshot', { path: record.screenshotPath });
+        const result = await window.electronAPI.invoke('open-screenshot', { path: record.screenshotPath });
+        if (!result.success) {
+          console.error('Failed to open screenshot:', result.error);
+        }
       } catch (error) {
         console.error('Failed to open screenshot:', error);
       }
@@ -37,7 +40,10 @@ export function WorkRecordCard({ record, onUpdate, onDelete, onEdit }: WorkRecor
   const handleShowInFolder = async () => {
     if (record.screenshotPath) {
       try {
-        await window.electronAPI.showItemInFolder(record.screenshotPath);
+        const result = await window.electronAPI.showItemInFolder(record.screenshotPath);
+        if (!result.success) {
+          console.error('Failed to show in folder:', result.error);
+        }
       } catch (error) {
         console.error('Failed to show in folder:', error);
       }
@@ -64,7 +70,7 @@ export function WorkRecordCard({ record, onUpdate, onDelete, onEdit }: WorkRecor
       };
       
       if (onEdit) {
-        await onEdit(updatedRecord);
+        onEdit(updatedRecord);
       }
       
       setIsEditDialogOpen(false);
@@ -80,7 +86,7 @@ export function WorkRecordCard({ record, onUpdate, onDelete, onEdit }: WorkRecor
     setIsLoading(true);
     try {
       if (onDelete) {
-        await onDelete(record.id);
+        onDelete(record.id);
       }
       setIsDeleteDialogOpen(false);
       onUpdate?.();

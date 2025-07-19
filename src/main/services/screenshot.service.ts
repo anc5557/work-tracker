@@ -82,10 +82,11 @@ export class ScreenshotService {
         }
       }
 
-      // 화면 소스 가져오기
+      // 화면 소스 가져오기 - 실제 화면 해상도로 캡처
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
-        thumbnailSize: { width: 1920, height: 1080 }
+        thumbnailSize: { width: 2560, height: 1600 }, // 더 큰 해상도로 설정
+        fetchWindowIcons: false
       });
 
       if (sources.length === 0) {
@@ -95,14 +96,11 @@ export class ScreenshotService {
       // 첫 번째 화면을 캡처 (기본 모니터)
       const source = sources[0];
       const image = source.thumbnail;
-      
-      // 고해상도 이미지로 다시 캡처
-      const fullSources = await desktopCapturer.getSources({
-        types: ['screen'],
-        thumbnailSize: { width: 0, height: 0 } // 실제 해상도
-      });
-      
-      const fullImage = fullSources[0]?.thumbnail || image;
+
+      // 이미지가 실제로 캡처되었는지 확인
+      if (!image || image.isEmpty()) {
+        throw new Error('스크린샷 캡처에 실패했습니다. 화면 녹화 권한을 확인해주세요.');
+      }
 
       // 파일명과 경로 생성
       const timestamp = new Date();
@@ -110,7 +108,13 @@ export class ScreenshotService {
       const filePath = join(this.screenshotDir, filename);
 
       // PNG 파일로 저장
-      const buffer = fullImage.toPNG();
+      const buffer = image.toPNG();
+      
+      // 버퍼가 실제로 데이터를 포함하는지 확인
+      if (buffer.length === 0) {
+        throw new Error('스크린샷 데이터가 비어있습니다.');
+      }
+
       await writeFile(filePath, buffer);
 
       const screenshotData: ScreenshotData = {
@@ -119,7 +123,7 @@ export class ScreenshotService {
         filePath,
       };
 
-      console.log('Screenshot captured:', filePath);
+      console.log(`Screenshot captured: ${filePath} (${buffer.length} bytes)`);
       return screenshotData;
 
     } catch (error) {
