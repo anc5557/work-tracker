@@ -24,18 +24,27 @@ export class IpcHandlers {
     // 스크린샷 캡처
     ipcMain.handle('capture-screenshot', async (_, data?: { sessionId?: string }) => {
       try {
+        console.log('Manual screenshot capture requested, data:', data);
         const screenshot = await this.screenshotService.captureFullScreen();
         
         // 세션 ID가 제공된 경우 수동 캡처임을 표시하고 세션과 연결
         if (screenshot && data?.sessionId) {
+          console.log('Setting up manual capture with sessionId:', data.sessionId);
           screenshot.workRecordId = data.sessionId;
           screenshot.isAutoCapture = false; // 수동 캡처임을 명시
           
           // 자동 캡처가 활성화된 상태에서 수동 캡처가 이루어진 경우 카운트 증가
           const autoCaptureStatus = this.screenshotService.getAutoCaptureStatus();
+          console.log('Current auto capture status:', autoCaptureStatus);
+          
           if (autoCaptureStatus.isActive && autoCaptureStatus.sessionId === data.sessionId) {
+            console.log('Incrementing manual capture count');
             this.screenshotService.incrementCaptureCount();
+          } else {
+            console.log('Auto capture not active or session mismatch, not incrementing count');
           }
+        } else {
+          console.log('No sessionId provided or screenshot failed');
         }
         
         return { success: true, data: screenshot };

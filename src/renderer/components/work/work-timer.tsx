@@ -227,7 +227,11 @@ export function WorkTimer() {
 
   const handleCaptureScreenshot = async () => {
     try {
-      const result = await window.electronAPI.invoke('capture-screenshot');
+      // 현재 세션이 활성화되어 있을 때만 세션 ID 전달
+      const sessionId = isWorking && currentRecord ? currentRecord.id : undefined;
+      console.log('Manual capture requested, sessionId:', sessionId, 'isWorking:', isWorking, 'currentRecord:', currentRecord);
+      
+      const result = await window.electronAPI.invoke('capture-screenshot', { sessionId });
       
       if (result.success) {
         toast({

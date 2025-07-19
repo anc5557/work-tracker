@@ -67,7 +67,7 @@ export type MainToRendererEvents = {
 
 // Renderer -> Main 요청
 export type RendererToMainRequests = {
-  'capture-screenshot': void;
+  'capture-screenshot': { sessionId?: string };
   'start-work': { title: string; description?: string };
   'stop-work': { id: string };
   'save-work-record': WorkRecord;

@@ -291,9 +291,13 @@ export class ScreenshotService {
    * 수동 스크린샷 캡처 시 카운트를 증가시킵니다.
    */
   incrementCaptureCount(): void {
+    console.log('incrementCaptureCount called, current status:', this.autoCaptureStatus);
     if (this.autoCaptureStatus.isActive) {
       this.autoCaptureStatus.totalCaptured++;
+      console.log('Manual capture count incremented to:', this.autoCaptureStatus.totalCaptured);
       this.notifyStatusChange();
+    } else {
+      console.log('Auto capture not active, not incrementing count');
     }
   }
 
