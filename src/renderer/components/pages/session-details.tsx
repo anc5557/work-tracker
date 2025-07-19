@@ -71,7 +71,7 @@ export function SessionDetails() {
           description: "세션 정보를 불러올 수 없습니다.",
           variant: "destructive",
         });
-        navigate('/dashboard');
+        navigate('/');
         return;
       }
       
@@ -223,7 +223,7 @@ export function SessionDetails() {
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-4">
               <p className="text-lg text-muted-foreground">세션을 찾을 수 없습니다</p>
-              <Button onClick={() => navigate('/dashboard')} variant="outline">
+              <Button onClick={() => navigate('/')} variant="outline">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 대시보드로 돌아가기
               </Button>
@@ -243,7 +243,7 @@ export function SessionDetails() {
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/')}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
