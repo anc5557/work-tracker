@@ -203,7 +203,7 @@ export function SessionDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6">
+      <div className="min-h-screen bg-background p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-4">
@@ -218,7 +218,7 @@ export function SessionDetails() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6">
+      <div className="min-h-screen bg-background p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-4">
@@ -235,7 +235,7 @@ export function SessionDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -251,7 +251,7 @@ export function SessionDetails() {
             </Button>
             <Separator orientation="vertical" className="h-6" />
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold">세션 상세</h1>
+              <h1 className="text-2xl font-semibold text-foreground">세션 상세</h1>
               {getStatusBadge()}
             </div>
           </div>
@@ -336,7 +336,7 @@ export function SessionDetails() {
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   placeholder="세션 설명을 입력하세요 (선택사항)"
-                  className="w-full min-h-[100px] px-3 py-2 text-sm border border-input bg-background rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  className="w-full min-h-[100px] px-3 py-2 text-sm border border-input bg-background text-foreground rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 />
               ) : (
                 <div className="pl-1 min-h-[60px] flex items-start py-2">
@@ -415,7 +415,7 @@ export function SessionDetails() {
                         <ImageIcon className="w-8 h-8 text-muted-foreground/70" />
                         
                         {/* Decorative pattern */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10"></div>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-background/5 to-background/10"></div>
                       </div>
                       
                       {/* Overlay with actions */}
