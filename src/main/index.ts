@@ -269,8 +269,22 @@ class WorkTrackerApp {
 
   private getTrayIcon(): Electron.NativeImage {
     try {
+      // Retina 디스플레이 지원을 위해 @2x 이미지도 함께 로드
       const iconPath = join(__dirname, '../../public/icons/tray-icon.png');
-      const image = nativeImage.createFromPath(iconPath);
+      const icon2xPath = join(__dirname, '../../public/icons/tray-icon@2x.png');
+      
+      let image: Electron.NativeImage;
+      
+      // @2x 이미지가 있으면 멀티 해상도 이미지로 생성
+      if (require('fs').existsSync(icon2xPath)) {
+        image = nativeImage.createFromPath(iconPath);
+        image.addRepresentation({
+          scaleFactor: 2.0,
+          buffer: require('fs').readFileSync(icon2xPath)
+        });
+      } else {
+        image = nativeImage.createFromPath(iconPath);
+      }
       
       // macOS에서는 트레이 아이콘을 템플릿으로 설정하여 시스템 테마에 맞게 조정
       if (process.platform === 'darwin') {
