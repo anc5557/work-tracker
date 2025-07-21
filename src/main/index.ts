@@ -33,6 +33,7 @@ class WorkTrackerApp {
     app.whenReady().then(() => {
       this.setupContentSecurityPolicy();
       this.requestNotificationPermission();
+      this.setupMacOSApp();
       this.createMainWindow();
       this.createTray();
       this.createMenu();
@@ -48,6 +49,22 @@ class WorkTrackerApp {
         clearInterval(this.trayUpdateInterval);
       }
     });
+  }
+
+  private setupMacOSApp(): void {
+    if (process.platform === 'darwin') {
+      // macOS 앱 이름 설정
+      app.setName('Work Tracker');
+      
+      // 독 아이콘 설정
+      if (app.dock) {
+        const dockIcon = this.getAppIcon();
+        app.dock.setIcon(dockIcon);
+      }
+      
+      // 앱 아이콘을 명시적으로 설정
+      app.setAppUserModelId('com.worktracker.app');
+    }
   }
 
   private setupContentSecurityPolicy(): void {
