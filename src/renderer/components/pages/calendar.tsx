@@ -12,9 +12,14 @@ import {
   Calendar as CalendarIcon,
   Clock,
   BarChart3,
-  Users
+  Users,
+  Download,
+  FileText,
+  Table
 } from 'lucide-react';
 import { TaskInputDialog } from '../work/task-input-dialog';
+import { useToast } from '../../hooks/use-toast';
+import { convertToMarkdown, convertToCSV, copyToClipboard, formatDateRange, type ExportData } from '../../lib/export-utils';
 import type { WorkRecord } from '../../../shared/types';
 
 interface MonthStats {
@@ -33,6 +38,7 @@ interface DayData {
 
 export function Calendar() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedRange, setSelectedRange] = useState<Date[]>([]);
@@ -435,6 +441,72 @@ export function Calendar() {
     setSelectedRange([date]); // 단일 선택으로 범위 초기화
   };
 
+  // 마크다운으로 내보내기
+  const handleExportMarkdown = async () => {
+    try {
+      const dateRange = formatDateRange(selectedRange);
+      const totalDuration = workSessions.reduce((sum, session) => {
+        return sum + (session.duration || 0);
+      }, 0);
+      
+      const exportData: ExportData = {
+        dateRange,
+        workSessions,
+        totalDuration,
+        totalSessions: workSessions.length
+      };
+      
+      const markdown = convertToMarkdown(exportData);
+      await copyToClipboard(markdown);
+      
+      toast({
+        title: "마크다운 복사 완료",
+        description: `${selectedRange.length}일 간의 업무 기록을 클립보드에 복사했습니다.`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('마크다운 내보내기 실패:', error);
+      toast({
+        title: "복사 실패",
+        description: "클립보드에 복사할 수 없습니다. 다시 시도해 주세요.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // CSV로 내보내기
+  const handleExportCSV = async () => {
+    try {
+      const dateRange = formatDateRange(selectedRange);
+      const totalDuration = workSessions.reduce((sum, session) => {
+        return sum + (session.duration || 0);
+      }, 0);
+      
+      const exportData: ExportData = {
+        dateRange,
+        workSessions,
+        totalDuration,
+        totalSessions: workSessions.length
+      };
+      
+      const csv = convertToCSV(exportData);
+      await copyToClipboard(csv);
+      
+      toast({
+        title: "CSV 복사 완료",
+        description: `${selectedRange.length}일 간의 업무 기록을 CSV 형식으로 클립보드에 복사했습니다.`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('CSV 내보내기 실패:', error);
+      toast({
+        title: "복사 실패",
+        description: "클립보드에 복사할 수 없습니다. 다시 시도해 주세요.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground p-8" ref={calendarRef}>
       <div className="max-w-7xl mx-auto space-y-8">
@@ -527,11 +599,37 @@ export function Calendar() {
         {/* Work Sessions */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">업무 세션</h2>
-            {selectedRange.length > 1 && (
-              <Badge variant="secondary" className="bg-primary text-primary-foreground">
-                {selectedRange.length}일 선택됨
-              </Badge>
+            <div className="flex items-center space-x-4">
+              <h2 className="text-2xl font-semibold">업무 세션</h2>
+              {selectedRange.length > 1 && (
+                <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                  {selectedRange.length}일 선택됨
+                </Badge>
+              )}
+            </div>
+            
+            {/* 내보내기 버튼들 */}
+            {selectedRange.length > 0 && workSessions.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportMarkdown}
+                  className="flex items-center space-x-2 hover:bg-accent"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>마크다운 복사</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCSV}
+                  className="flex items-center space-x-2 hover:bg-accent"
+                >
+                  <Table className="w-4 h-4" />
+                  <span>CSV 복사</span>
+                </Button>
+              </div>
             )}
           </div>
           
