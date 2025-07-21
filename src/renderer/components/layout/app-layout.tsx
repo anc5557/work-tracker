@@ -135,19 +135,19 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         <div className="flex flex-col h-full">
           {/* 사이드바 헤더 */}
-          <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
-            <div className={cn(
-              "flex items-center space-x-2 transition-opacity duration-200",
-              sidebarCollapsed ? "opacity-0 lg:opacity-0" : "opacity-100"
-            )}>
-              <div className="text-foreground">
+          <div className="flex items-center justify-between p-4 pt-8 border-b border-border flex-shrink-0">
+            <div className="flex items-center space-x-2 transition-all duration-200">
+              <div className="text-foreground flex-shrink-0">
                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                 </svg>
               </div>
-              {!sidebarCollapsed && (
-                <span className="text-foreground text-lg font-semibold truncate">Work Tracker</span>
-              )}
+              <span className={cn(
+                "text-foreground text-lg font-semibold truncate transition-all duration-200",
+                sidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+              )}>
+                Work Tracker
+              </span>
             </div>
             
             {/* 데스크톱 접기 버튼 */}

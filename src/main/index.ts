@@ -374,7 +374,7 @@ class WorkTrackerApp {
         const elapsedMs = now.getTime() - startTime.getTime();
         
         const elapsedTime = this.formatElapsedTime(elapsedMs);
-        this.tray.setTitle(`⏱ ${elapsedTime}`);
+        this.tray.setTitle(`${elapsedTime}`);
         this.tray.setToolTip(`Work Tracker - ${activeSession.title} (${elapsedTime})`);
       } else {
         this.tray.setTitle('');
