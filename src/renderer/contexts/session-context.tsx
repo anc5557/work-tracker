@@ -174,11 +174,6 @@ export function SessionProvider({ children }: SessionProviderProps) {
             setElapsedTime(now - start);
             
             saveSessionToStorage(activeSession, true);
-            
-            toast({
-              title: "세션 복원",
-              description: `"${activeSession.title}" 작업이 복원되었습니다.`,
-            });
           }
         } else {
           // 백엔드에 활성 세션이 없음
