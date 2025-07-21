@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, nativeImage, session } from 'electron';
+import { app, BrowserWindow, Menu, Tray, nativeImage, session, Notification } from 'electron';
 import { join } from 'path';
 import { IpcHandlers } from './ipc/handlers';
 
@@ -31,6 +31,7 @@ class WorkTrackerApp {
 
     app.whenReady().then(() => {
       this.setupContentSecurityPolicy();
+      this.requestNotificationPermission();
       this.createMainWindow();
       this.createTray();
       this.createMenu();
@@ -253,6 +254,36 @@ class WorkTrackerApp {
   private getAppIcon(): Electron.NativeImage {
     // 기본 아이콘 (나중에 실제 아이콘으로 교체)
     return nativeImage.createFromNamedImage('NSImageNameComputer');
+  }
+
+  /**
+   * macOS 알림 권한을 요청합니다.
+   */
+  private requestNotificationPermission(): void {
+    if (process.platform === 'darwin') {
+      // macOS에서 알림 권한 요청
+      if (Notification.isSupported()) {
+        console.log('Requesting notification permission...');
+        
+        // 테스트 알림을 통해 권한 요청
+        const testNotification = new Notification({
+          title: 'Work Tracker',
+          body: '알림 권한이 허용되었습니다. 작업 변경 시 알림을 받을 수 있습니다.',
+          silent: true
+        });
+        
+        testNotification.show();
+        
+        // 잠시 후 테스트 알림 닫기
+        setTimeout(() => {
+          testNotification.close();
+        }, 3000);
+        
+        console.log('Notification permission requested');
+      } else {
+        console.log('Notifications are not supported on this system');
+      }
+    }
   }
 }
 

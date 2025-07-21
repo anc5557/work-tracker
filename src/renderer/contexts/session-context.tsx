@@ -124,20 +124,31 @@ export function SessionProvider({ children }: SessionProviderProps) {
   }, []);
 
   const startSession = useCallback((record: WorkRecord) => {
-    console.log('Starting session:', record);
+    console.log('=== startSession START ===');
+    console.log('Starting session with record:', record);
+    console.log('Previous state - isWorking:', isWorking, 'currentRecord:', currentRecord);
+    
     setCurrentRecord(record);
     setIsWorking(true);
     setElapsedTime(0);
     saveSessionToStorage(record, true);
-  }, [saveSessionToStorage]);
+    
+    console.log('Session state updated');
+    console.log('=== startSession END ===');
+  }, [saveSessionToStorage, isWorking, currentRecord]);
 
   const stopSession = useCallback(() => {
-    console.log('Stopping session');
+    console.log('=== stopSession START ===');
+    console.log('Previous state - isWorking:', isWorking, 'currentRecord:', currentRecord);
+    
     setIsWorking(false);
     setCurrentRecord(null);
     setElapsedTime(0);
     saveSessionToStorage(null, false);
-  }, [saveSessionToStorage]);
+    
+    console.log('Session state cleared');
+    console.log('=== stopSession END ===');
+  }, [saveSessionToStorage, isWorking, currentRecord]);
 
   const checkSession = useCallback(async () => {
     if (sessionCheckingRef.current) return;
@@ -226,37 +237,93 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
   const endCurrentSessionAndStartNew = useCallback(async (newRecord: WorkRecord) => {
     try {
-      console.log('Ending current session and starting new one:', newRecord);
+      console.log('=== endCurrentSessionAndStartNew START ===');
+      console.log('Current state - isWorking:', isWorking, 'currentRecord:', currentRecord);
+      console.log('New record to start:', newRecord);
       
-      // 현재 세션이 있으면 종료
-      if (currentRecord && isWorking) {
-        console.log('Stopping current session:', currentRecord.id);
-        await window.electronAPI.invoke('stop-work', { id: currentRecord.id });
+      // 먼저 백엔드에서 현재 활성 세션 확인
+      const activeSessionResult = await window.electronAPI.invoke('get-active-session');
+      console.log('Active session check result:', activeSessionResult);
+      
+      let sessionToStop = null;
+      if (activeSessionResult.success && activeSessionResult.data && activeSessionResult.data.isActive) {
+        sessionToStop = activeSessionResult.data;
+      } else if (currentRecord && isWorking) {
+        sessionToStop = currentRecord;
+      }
+      
+      if (sessionToStop) {
+        console.log('Stopping session before starting new one:', sessionToStop.id);
         
-        toast({
-          title: "이전 작업 종료",
-          description: `"${currentRecord.title}" 작업이 종료되었습니다.`,
-        });
+        // 자동 캡처 중지
+        console.log('Stopping auto capture...');
+        try {
+          const stopAutoCaptureResult = await window.electronAPI.invoke('stop-auto-capture');
+          console.log('Stop auto capture result:', stopAutoCaptureResult);
+        } catch (autoCaptureError) {
+          console.error('Error stopping auto capture:', autoCaptureError);
+        }
+        
+        // 세션 종료
+        const stopResult = await window.electronAPI.invoke('stop-work', { id: sessionToStop.id });
+        console.log('Stop work result:', stopResult);
+        
+        if (stopResult.success) {
+          toast({
+            title: "이전 작업 종료",
+            description: `"${sessionToStop.title}" 작업이 종료되었습니다.`,
+          });
+        } else {
+          console.error('Failed to stop current work:', stopResult.error);
+        }
+      } else {
+        console.log('No active session to stop');
       }
       
       // 새 세션 시작
-      console.log('Starting new session:', newRecord);
+      console.log('Starting new session with data:', {
+        title: newRecord.title,
+        description: newRecord.description
+      });
       const result = await window.electronAPI.invoke('start-work', {
         title: newRecord.title,
         description: newRecord.description
       });
+      console.log('Start work result:', result);
       
       if (result.success) {
+        console.log('Calling startSession with:', result.data);
         startSession(result.data);
+        
+        // 자동 캡처 시작 (기본 5분 간격)
+        console.log('Starting auto capture for new session...');
+        try {
+          const autoCaptureResult = await window.electronAPI.invoke('start-auto-capture', {
+            sessionId: result.data.id,
+            interval: 5 // 5분 간격
+          });
+          console.log('Auto capture start result:', autoCaptureResult);
+          
+          if (autoCaptureResult.success) {
+            console.log('Auto capture started successfully');
+          } else {
+            console.error('Failed to start auto capture:', autoCaptureResult.error);
+          }
+        } catch (autoCaptureError) {
+          console.error('Error starting auto capture:', autoCaptureError);
+        }
         
         toast({
           title: "새 작업 시작",
           description: `"${newRecord.title}" 작업을 시작했습니다.`,
         });
+        console.log('New session started successfully');
       } else {
+        console.error('Failed to start new work:', result.error);
         throw new Error(result.error || '새 세션 시작에 실패했습니다.');
       }
       
+      console.log('=== endCurrentSessionAndStartNew END ===');
     } catch (error) {
       console.error('Failed to end current session and start new:', error);
       toast({
@@ -269,20 +336,53 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
   const endCurrentSession = useCallback(async () => {
     try {
-      console.log('Ending current session');
+      console.log('=== endCurrentSession START ===');
+      console.log('Current state - isWorking:', isWorking, 'currentRecord:', currentRecord);
       
-      if (currentRecord && isWorking) {
-        console.log('Stopping current session:', currentRecord.id);
-        await window.electronAPI.invoke('stop-work', { id: currentRecord.id });
-        
-        stopSession();
-        
-        toast({
-          title: "작업 종료",
-          description: `"${currentRecord.title}" 작업이 종료되었습니다.`,
-        });
+      // 먼저 백엔드에서 현재 활성 세션 확인
+      const activeSessionResult = await window.electronAPI.invoke('get-active-session');
+      console.log('Active session check result:', activeSessionResult);
+      
+      let sessionToStop = null;
+      if (activeSessionResult.success && activeSessionResult.data && activeSessionResult.data.isActive) {
+        sessionToStop = activeSessionResult.data;
+      } else if (currentRecord && isWorking) {
+        sessionToStop = currentRecord;
       }
       
+      if (sessionToStop) {
+        console.log('Stopping session:', sessionToStop.id);
+        
+        // 자동 캡처 중지
+        console.log('Stopping auto capture...');
+        try {
+          const stopAutoCaptureResult = await window.electronAPI.invoke('stop-auto-capture');
+          console.log('Stop auto capture result:', stopAutoCaptureResult);
+        } catch (autoCaptureError) {
+          console.error('Error stopping auto capture:', autoCaptureError);
+        }
+        
+        // 세션 종료
+        const stopResult = await window.electronAPI.invoke('stop-work', { id: sessionToStop.id });
+        console.log('Stop work result:', stopResult);
+        
+        if (stopResult.success) {
+          stopSession();
+          
+          toast({
+            title: "작업 종료",
+            description: `"${sessionToStop.title}" 작업이 종료되었습니다.`,
+          });
+          console.log('Session ended successfully');
+        } else {
+          console.error('Failed to stop work:', stopResult.error);
+          throw new Error(stopResult.error || '세션 종료에 실패했습니다.');
+        }
+      } else {
+        console.log('No active session to stop');
+      }
+      
+      console.log('=== endCurrentSession END ===');
     } catch (error) {
       console.error('Failed to end current session:', error);
       toast({

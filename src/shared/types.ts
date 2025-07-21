@@ -67,6 +67,11 @@ export type MainToRendererEvents = {
     screenshot: ScreenshotData; 
     timestamp: string; 
   };
+  'notification-response': {
+    action: 'new-work' | 'continue' | 'stop';
+    screenshot: ScreenshotData;
+    timestamp: string;
+  };
 };
 
 // Renderer -> Main 요청

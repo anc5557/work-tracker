@@ -1,68 +1,83 @@
 import React, { useEffect, useState } from 'react';
-import { WorkChangeNotification } from './work-change-notification';
 import { TaskInputDialog } from './task-input-dialog';
 import { useSession } from '../../contexts/session-context';
 import type { ScreenshotData, WorkRecord } from '../../../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 
 export function WorkChangeNotificationHandler() {
-  const [showNotification, setShowNotification] = useState(false);
   const [showTaskInput, setShowTaskInput] = useState(false);
   const [currentScreenshot, setCurrentScreenshot] = useState<ScreenshotData | null>(null);
   
   const { endCurrentSessionAndStartNew, endCurrentSession } = useSession();
 
   useEffect(() => {
-    // 작업 변경 알림 이벤트 리스너
-    const handleWorkChangeNotification = (data: { screenshot: ScreenshotData; timestamp: string }) => {
-      console.log('Work change notification received:', data);
+    // 시스템 알림 응답 이벤트 리스너
+    const handleNotificationResponse = (data: {
+      action: 'new-work' | 'continue' | 'stop';
+      screenshot: ScreenshotData;
+      timestamp: string;
+    }) => {
+      console.log('Notification response received:', data);
       setCurrentScreenshot(data.screenshot);
-      setShowNotification(true);
+      
+      switch (data.action) {
+        case 'new-work':
+          // 새 작업 시작 - 작업 입력 다이얼로그 표시
+          console.log('Opening task input dialog for new work');
+          setShowTaskInput(true);
+          break;
+        case 'continue':
+          // 현재 작업 계속 - 아무것도 하지 않음
+          console.log('Continuing current work');
+          break;
+        case 'stop':
+          // 작업 종료
+          console.log('Stopping current work');
+          handleStop();
+          break;
+      }
     };
 
     // IPC 이벤트 리스너 등록
-    window.electronAPI.on('work-change-notification', handleWorkChangeNotification);
+    window.electronAPI.on('notification-response', handleNotificationResponse);
 
     // 컴포넌트 언마운트 시 리스너 정리
     return () => {
-      window.electronAPI.removeAllListeners('work-change-notification');
+      window.electronAPI.removeAllListeners('notification-response');
     };
   }, []);
 
-  // "예" 버튼 클릭 - 새 작업 시작
-  const handleYes = () => {
-    setShowNotification(false);
-    setShowTaskInput(true);
-  };
-
-  // "진행중" 버튼 클릭 - 현재 작업 계속
-  const handleContinue = () => {
-    setShowNotification(false);
-    setCurrentScreenshot(null);
-    // 아무것도 하지 않음 (현재 세션 유지)
-  };
-
   // "종료" 버튼 클릭 - 현재 세션 종료
   const handleStop = async () => {
-    setShowNotification(false);
     setCurrentScreenshot(null);
     await endCurrentSession();
   };
 
   // 새 작업 입력 완료
   const handleNewTaskSubmit = async (title: string, description?: string) => {
-    const newRecord: WorkRecord = {
-      id: uuidv4(),
-      title,
-      description,
-      startTime: new Date().toISOString(),
-      tags: [],
-      isActive: true,
-    };
+    try {
+      console.log('Creating new work record:', { title, description });
+      
+      const newRecord: WorkRecord = {
+        id: uuidv4(),
+        title,
+        description,
+        startTime: new Date().toISOString(),
+        tags: [],
+        isActive: true,
+      };
 
-    await endCurrentSessionAndStartNew(newRecord);
-    setShowTaskInput(false);
-    setCurrentScreenshot(null);
+      console.log('New record created:', newRecord);
+      console.log('Calling endCurrentSessionAndStartNew...');
+      
+      await endCurrentSessionAndStartNew(newRecord);
+      
+      console.log('Session change completed, closing dialog');
+      setShowTaskInput(false);
+      setCurrentScreenshot(null);
+    } catch (error) {
+      console.error('Error in handleNewTaskSubmit:', error);
+    }
   };
 
   // 새 작업 입력 건너뛰기
@@ -74,17 +89,7 @@ export function WorkChangeNotificationHandler() {
 
   return (
     <>
-      {/* 작업 변경 알림 다이얼로그 */}
-      <WorkChangeNotification
-        open={showNotification}
-        onOpenChange={setShowNotification}
-        onYes={handleYes}
-        onContinue={handleContinue}
-        onStop={handleStop}
-        screenshot={currentScreenshot || undefined}
-      />
-
-      {/* 새 작업 입력 다이얼로그 */}
+      {/* 새 작업 입력 다이얼로그 (시스템 알림에서 "예" 선택 시 표시) */}
       <TaskInputDialog
         open={showTaskInput}
         onOpenChange={setShowTaskInput}

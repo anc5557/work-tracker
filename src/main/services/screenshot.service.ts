@@ -1,4 +1,4 @@
-import { desktopCapturer, nativeImage, systemPreferences, BrowserWindow } from 'electron';
+import { desktopCapturer, nativeImage, systemPreferences, BrowserWindow, Notification } from 'electron';
 import { writeFile, mkdir, readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -291,13 +291,108 @@ export class ScreenshotService {
   }
 
   /**
-   * 작업 변경 알림을 렌더러에 전송합니다.
+   * 작업 변경 알림을 macOS 시스템 알림으로 전송합니다.
    */
   private sendWorkChangeNotification(screenshot: ScreenshotData): void {
-    this.sendToRenderer('work-change-notification', {
+    this.showDesktopNotification(screenshot);
+  }
+
+  /**
+   * macOS 데스크톱 알림을 표시합니다.
+   */
+  private showDesktopNotification(screenshot: ScreenshotData): void {
+    // 알림 권한 확인
+    if (!Notification.isSupported()) {
+      console.log('시스템 알림이 지원되지 않습니다.');
+      return;
+    }
+
+    // macOS에서 코드 서명된 앱인지 확인 (프로덕션에서는 버튼 표시 가능)
+    const isSignedApp = process.platform === 'darwin' && process.env.NODE_ENV === 'production';
+    
+    const notificationOptions = {
+      title: '🔄 작업 변경 확인',
+      body: isSignedApp 
+        ? '현재 작업이 변경되었습니까?\n아래 버튼을 클릭하여 선택하세요.'
+        : '현재 작업이 변경되었습니까?\n• 알림 클릭 → 새 작업 시작\n• 무시 → 계속 진행',
+      icon: process.platform === 'darwin' ? undefined : undefined,
+      sound: 'Ping',
+      urgency: 'normal' as const,
+      actions: isSignedApp ? [
+        { type: 'button' as const, text: '새 작업 시작' },
+        { type: 'button' as const, text: '계속 진행' }
+      ] : [],
+      hasReply: false,
+      timeoutType: 'default' as const
+    };
+
+    const notification = new Notification(notificationOptions);
+
+    // 알림 클릭 이벤트 (버튼이 없는 경우에만 새 작업 시작)
+    notification.on('click', () => {
+      console.log('Notification clicked');
+      if (!isSignedApp) {
+        // 버튼이 없는 개발 환경에서는 클릭 시 새 작업 시작
+        console.log('Starting new work (no buttons available)');
+        this.handleNotificationResponse('new-work', screenshot);
+      } else {
+        // 버튼이 있는 환경에서는 단순히 앱을 포그라운드로
+        const mainWindow = BrowserWindow.getAllWindows()[0];
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.focus();
+          mainWindow.show();
+        }
+      }
+    });
+
+    // 액션 버튼 클릭 이벤트 (서명된 앱에서만 동작)
+    notification.on('action', (event, index) => {
+      console.log('Notification action clicked:', index);
+      if (index === 0) {
+        // "새 작업 시작" 클릭
+        this.handleNotificationResponse('new-work', screenshot);
+      } else if (index === 1) {
+        // "계속 진행" 클릭
+        this.handleNotificationResponse('continue', screenshot);
+      }
+    });
+
+    // 알림 닫힘 이벤트
+    notification.on('close', () => {
+      console.log('Notification closed - continuing current work');
+      // 닫힘은 "계속 진행"으로 처리
+      this.handleNotificationResponse('continue', screenshot);
+    });
+
+    notification.show();
+    console.log('Desktop notification shown');
+  }
+
+  /**
+   * 알림 응답을 처리합니다.
+   */
+  private handleNotificationResponse(action: 'new-work' | 'continue' | 'stop', screenshot: ScreenshotData): void {
+    console.log('Handling notification response:', action);
+    
+    // 응답을 렌더러에 전송
+    this.sendToRenderer('notification-response', {
+      action,
       screenshot,
       timestamp: new Date().toISOString()
     });
+
+    // 앱을 포그라운드로 가져오기 (새 작업 시작 시)
+    if (action === 'new-work') {
+      const mainWindow = BrowserWindow.getAllWindows()[0];
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
+        }
+        mainWindow.focus();
+        mainWindow.show();
+      }
+    }
   }
 
   /**
