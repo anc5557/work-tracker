@@ -103,4 +103,6 @@ export type RendererToMainRequests = {
   'save-settings': AppSettings;
   'load-settings': void;
   'get-default-settings': void;
+  // 트레이 업데이트 관련
+  'session-status-changed': void;
 }; 

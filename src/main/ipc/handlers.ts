@@ -485,6 +485,18 @@ export class IpcHandlers {
       }
     });
 
+    // 세션 상태 변경 알림 (트레이 업데이트용)
+    ipcMain.handle('session-status-changed', async () => {
+      try {
+        // 트레이 업데이트를 위해 세션 상태 변경을 알림
+        this.sendToRenderer('tray-update-requested');
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to handle session status change:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
     // 데이터 백업/복원 (나중에 구현)
     ipcMain.handle('backup-data', async () => {
       // TODO: 구현 필요
@@ -505,5 +517,27 @@ export class IpcHandlers {
     windows.forEach(window => {
       window.webContents.send(event, data);
     });
+  }
+
+  /**
+   * 활성 세션을 가져옵니다 (메인 프로세스에서 직접 사용).
+   */
+  public async getActiveSession(): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const dayData = await this.dataService.getWorkRecords(today);
+      
+      if (!dayData) {
+        return { success: true, data: null };
+      }
+
+      // 활성 상태인 세션 찾기
+      const activeSession = dayData.records.find(record => record.isActive);
+      
+      return { success: true, data: activeSession || null };
+    } catch (error) {
+      console.error('Failed to get active session:', error);
+      return { success: false, error: (error as Error).message };
+    }
   }
 } 

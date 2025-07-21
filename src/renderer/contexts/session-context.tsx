@@ -133,6 +133,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
     setElapsedTime(0);
     saveSessionToStorage(record, true);
     
+    // 메인 프로세스에 세션 상태 변경 알림
+    window.electronAPI.invoke('session-status-changed').catch(console.error);
+    
     console.log('Session state updated');
     console.log('=== startSession END ===');
   }, [saveSessionToStorage, isWorking, currentRecord]);
@@ -145,6 +148,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
     setCurrentRecord(null);
     setElapsedTime(0);
     saveSessionToStorage(null, false);
+    
+    // 메인 프로세스에 세션 상태 변경 알림
+    window.electronAPI.invoke('session-status-changed').catch(console.error);
     
     console.log('Session state cleared');
     console.log('=== stopSession END ===');

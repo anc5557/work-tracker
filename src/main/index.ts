@@ -7,6 +7,7 @@ class WorkTrackerApp {
   private tray: Tray | null = null;
   private ipcHandlers: IpcHandlers;
   private dataPath: string;
+  private trayUpdateInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.dataPath = join(app.getPath('userData'), 'work-tracker-data');
@@ -35,12 +36,16 @@ class WorkTrackerApp {
       this.createMainWindow();
       this.createTray();
       this.createMenu();
+      this.startTrayUpdater();
     });
 
     // 앱 종료 시 정리
     app.on('before-quit', () => {
       if (this.tray) {
         this.tray.destroy();
+      }
+      if (this.trayUpdateInterval) {
+        clearInterval(this.trayUpdateInterval);
       }
     });
   }
@@ -283,6 +288,61 @@ class WorkTrackerApp {
       } else {
         console.log('Notifications are not supported on this system');
       }
+    }
+  }
+
+  /**
+   * 트레이 타이틀 업데이트를 시작합니다.
+   */
+  private startTrayUpdater(): void {
+    this.updateTrayTitle();
+    
+    // 1초마다 업데이트
+    this.trayUpdateInterval = setInterval(() => {
+      this.updateTrayTitle();
+    }, 1000);
+  }
+
+  /**
+   * 트레이 타이틀을 현재 세션 진행 시간으로 업데이트합니다.
+   */
+  private async updateTrayTitle(): Promise<void> {
+    try {
+      if (!this.tray) return;
+
+      const result = await this.ipcHandlers.getActiveSession();
+      
+      if (result.success && result.data && result.data.isActive) {
+        const activeSession = result.data;
+        const now = new Date();
+        const startTime = new Date(activeSession.startTime);
+        const elapsedMs = now.getTime() - startTime.getTime();
+        
+        const elapsedTime = this.formatElapsedTime(elapsedMs);
+        this.tray.setTitle(`⏱ ${elapsedTime}`);
+        this.tray.setToolTip(`Work Tracker - ${activeSession.title} (${elapsedTime})`);
+      } else {
+        this.tray.setTitle('');
+        this.tray.setToolTip('Work Tracker');
+      }
+    } catch (error) {
+      console.error('Failed to update tray title:', error);
+    }
+  }
+
+  /**
+   * 경과 시간을 사람이 읽기 쉬운 형식으로 포맷합니다.
+   */
+  private formatElapsedTime(elapsedMs: number): string {
+    const totalSeconds = Math.floor(elapsedMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
   }
 }
