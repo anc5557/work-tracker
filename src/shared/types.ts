@@ -76,6 +76,8 @@ export type MainToRendererEvents = {
     screenshot: ScreenshotData;
     timestamp: string;
   };
+  'stop-current-session': void;
+  'start-new-session-from-tray': void;
 };
 
 // Renderer -> Main 요청

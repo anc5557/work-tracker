@@ -147,51 +147,10 @@ class WorkTrackerApp {
     const trayIcon = this.getTrayIcon();
     this.tray = new Tray(trayIcon);
     
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: 'Work Tracker 열기',
-        click: () => {
-          if (this.mainWindow) {
-            this.mainWindow.show();
-            this.mainWindow.focus();
-          } else {
-            this.createMainWindow();
-          }
-        }
-      },
-      {
-        label: '스크린샷 캡처',
-        click: () => {
-          // IPC를 통해 스크린샷 캡처 실행
-          this.ipcHandlers.sendToRenderer('capture-screenshot-request');
-        }
-      },
-      {
-        type: 'separator'
-      },
-      {
-        label: '설정',
-        click: () => {
-          if (this.mainWindow) {
-            this.mainWindow.show();
-            this.mainWindow.focus();
-            this.mainWindow.webContents.send('navigate-to', '/settings');
-          }
-        }
-      },
-      {
-        type: 'separator'
-      },
-      {
-        label: '종료',
-        click: () => {
-          app.quit();
-        }
-      }
-    ]);
+    // 초기 트레이 메뉴 설정
+    this.updateTrayMenu();
 
     this.tray.setToolTip('Work Tracker');
-    this.tray.setContextMenu(contextMenu);
 
     // 트레이 아이콘 클릭 시 메인 윈도우 토글
     this.tray.on('click', () => {
@@ -206,6 +165,142 @@ class WorkTrackerApp {
         this.createMainWindow();
       }
     });
+  }
+
+  /**
+   * 트레이 메뉴를 활성 세션 상태에 따라 동적으로 업데이트합니다.
+   */
+  private async updateTrayMenu(): Promise<void> {
+    if (!this.tray) return;
+
+    try {
+      const result = await this.ipcHandlers.getActiveSession();
+      const isSessionActive = result.success && result.data && result.data.isActive;
+      
+      const sessionMenuItems: Electron.MenuItemConstructorOptions[] = [];
+      
+      if (isSessionActive) {
+        // 활성 세션이 있는 경우 - 세션 중지 및 새 세션 시작 버튼 추가
+        sessionMenuItems.push(
+          {
+            label: '현재 세션 중지',
+            click: () => {
+              this.sendToRenderer('stop-current-session');
+            }
+          },
+          {
+            label: '새 세션 시작',
+            click: () => {
+              this.sendToRenderer('start-new-session-from-tray');
+            }
+          },
+          {
+            type: 'separator'
+          }
+        );
+      } else {
+        // 활성 세션이 없는 경우 - 세션 시작 버튼 추가
+        sessionMenuItems.push(
+          {
+            label: '새 세션 시작',
+            click: () => {
+              this.sendToRenderer('start-new-session-from-tray');
+            }
+          },
+          {
+            type: 'separator'
+          }
+        );
+      }
+
+      // 스크린샷 캡처 메뉴 항목 (세션이 진행 중일 때만 표시)
+      const screenshotMenuItem: Electron.MenuItemConstructorOptions[] = isSessionActive ? [
+        {
+          label: '스크린샷 캡처',
+          click: () => {
+            // IPC를 통해 스크린샷 캡처 실행
+            this.ipcHandlers.sendToRenderer('capture-screenshot-request');
+          }
+        },
+        {
+          type: 'separator'
+        }
+      ] : [];
+
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: 'Work Tracker 열기',
+          click: () => {
+            if (this.mainWindow) {
+              this.mainWindow.show();
+              this.mainWindow.focus();
+            } else {
+              this.createMainWindow();
+            }
+          }
+        },
+        {
+          type: 'separator'
+        },
+        ...sessionMenuItems,
+        ...screenshotMenuItem,
+        {
+          label: '설정',
+          click: () => {
+            if (this.mainWindow) {
+              this.mainWindow.show();
+              this.mainWindow.focus();
+              this.mainWindow.webContents.send('navigate-to', '/settings');
+            }
+          }
+        },
+        {
+          type: 'separator'
+        },
+        {
+          label: '종료',
+          click: () => {
+            app.quit();
+          }
+        }
+      ]);
+
+      this.tray.setContextMenu(contextMenu);
+    } catch (error) {
+      console.error('Failed to update tray menu:', error);
+      
+      // 오류 발생 시 기본 메뉴 설정
+      const fallbackMenu = Menu.buildFromTemplate([
+        {
+          label: 'Work Tracker 열기',
+          click: () => {
+            if (this.mainWindow) {
+              this.mainWindow.show();
+              this.mainWindow.focus();
+            } else {
+              this.createMainWindow();
+            }
+          }
+        },
+        {
+          label: '종료',
+          click: () => {
+            app.quit();
+          }
+        }
+      ]);
+      
+      this.tray.setContextMenu(fallbackMenu);
+    }
+  }
+
+  /**
+   * 렌더러 프로세스로 메시지를 보냅니다.
+   */
+  private sendToRenderer(channel: string, ...args: any[]): void {
+    if (this.mainWindow && this.mainWindow.webContents) {
+      this.mainWindow.webContents.send(channel, ...args);
+    }
   }
 
   private createMenu(): void {
@@ -352,10 +447,15 @@ class WorkTrackerApp {
   private startTrayUpdater(): void {
     this.updateTrayTitle();
     
-    // 1초마다 업데이트
+    // 1초마다 타이틀 업데이트, 30초마다 메뉴 업데이트
     this.trayUpdateInterval = setInterval(() => {
       this.updateTrayTitle();
     }, 1000);
+
+    // 30초마다 메뉴 상태 업데이트 (세션 상태 변화 감지)
+    setInterval(() => {
+      this.updateTrayMenu();
+    }, 30000);
   }
 
   /**
