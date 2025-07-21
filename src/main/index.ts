@@ -127,7 +127,7 @@ class WorkTrackerApp {
   }
 
   private createTray(): void {
-    const trayIcon = this.getAppIcon();
+    const trayIcon = this.getTrayIcon();
     this.tray = new Tray(trayIcon);
     
     const contextMenu = Menu.buildFromTemplate([
@@ -257,8 +257,32 @@ class WorkTrackerApp {
   }
 
   private getAppIcon(): Electron.NativeImage {
-    // 기본 아이콘 (나중에 실제 아이콘으로 교체)
-    return nativeImage.createFromNamedImage('NSImageNameComputer');
+    try {
+      const iconPath = join(__dirname, '../../public/icons/app-icon.png');
+      return nativeImage.createFromPath(iconPath);
+    } catch (error) {
+      console.warn('Failed to load app icon:', error);
+      // 폴백으로 기본 아이콘 사용
+      return nativeImage.createFromNamedImage('NSImageNameComputer');
+    }
+  }
+
+  private getTrayIcon(): Electron.NativeImage {
+    try {
+      const iconPath = join(__dirname, '../../public/icons/tray-icon.png');
+      const image = nativeImage.createFromPath(iconPath);
+      
+      // macOS에서는 트레이 아이콘을 템플릿으로 설정하여 시스템 테마에 맞게 조정
+      if (process.platform === 'darwin') {
+        image.setTemplateImage(true);
+      }
+      
+      return image;
+    } catch (error) {
+      console.warn('Failed to load tray icon:', error);
+      // 폴백으로 앱 아이콘 사용
+      return this.getAppIcon();
+    }
   }
 
   /**
