@@ -307,62 +307,41 @@ export class ScreenshotService {
       return;
     }
 
-    // macOS에서 코드 서명된 앱인지 확인 (프로덕션에서는 버튼 표시 가능)
-    const isSignedApp = process.platform === 'darwin' && process.env.NODE_ENV === 'production';
-    
     const notificationOptions = {
       title: '🔄 작업 변경 확인',
-      body: isSignedApp 
-        ? '현재 작업이 변경되었습니까?\n아래 버튼을 클릭하여 선택하세요.'
-        : '현재 작업이 변경되었습니까?\n• 알림 클릭 → 새 작업 시작\n• 무시 → 계속 진행',
+      body: '현재 작업이 변경되었습니까?\n클릭하여 업무 상태를 확인하세요.',
       icon: process.platform === 'darwin' ? undefined : undefined,
       sound: 'Ping',
       urgency: 'normal' as const,
-      actions: isSignedApp ? [
-        { type: 'button' as const, text: '새 작업 시작' },
-        { type: 'button' as const, text: '계속 진행' }
-      ] : [],
       hasReply: false,
       timeoutType: 'default' as const
     };
 
     const notification = new Notification(notificationOptions);
 
-    // 알림 클릭 이벤트 (버튼이 없는 경우에만 새 작업 시작)
+    // 알림 클릭 이벤트 - 항상 다이얼로그 표시
     notification.on('click', () => {
-      console.log('Notification clicked');
-      if (!isSignedApp) {
-        // 버튼이 없는 개발 환경에서는 클릭 시 새 작업 시작
-        console.log('Starting new work (no buttons available)');
-        this.handleNotificationResponse('new-work', screenshot);
-      } else {
-        // 버튼이 있는 환경에서는 단순히 앱을 포그라운드로
-        const mainWindow = BrowserWindow.getAllWindows()[0];
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          if (mainWindow.isMinimized()) mainWindow.restore();
-          mainWindow.focus();
-          mainWindow.show();
-        }
-      }
-    });
-
-    // 액션 버튼 클릭 이벤트 (서명된 앱에서만 동작)
-    notification.on('action', (event, index) => {
-      console.log('Notification action clicked:', index);
-      if (index === 0) {
-        // "새 작업 시작" 클릭
-        this.handleNotificationResponse('new-work', screenshot);
-      } else if (index === 1) {
-        // "계속 진행" 클릭
-        this.handleNotificationResponse('continue', screenshot);
+      console.log('Notification clicked - showing status dialog');
+      
+      // 앱을 포그라운드로 가져오기
+      const mainWindow = BrowserWindow.getAllWindows()[0];
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+        mainWindow.show();
+        
+        // 다이얼로그 표시를 위한 이벤트 전송
+        this.sendToRenderer('notification-clicked', {
+          screenshot,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 
     // 알림 닫힘 이벤트
     notification.on('close', () => {
-      console.log('Notification closed - continuing current work');
-      // 닫힘은 "계속 진행"으로 처리
-      this.handleNotificationResponse('continue', screenshot);
+      console.log('Notification closed - no action taken');
+      // 닫힘 시에는 아무 작업도 하지 않음
     });
 
     notification.show();

@@ -295,12 +295,16 @@ export function SessionProvider({ children }: SessionProviderProps) {
         console.log('Calling startSession with:', result.data);
         startSession(result.data);
         
-        // 자동 캡처 시작 (기본 5분 간격)
+        // 자동 캡처 시작 (설정에서 간격 로드)
         console.log('Starting auto capture for new session...');
         try {
+          // 설정에서 캡처 간격 로드
+          const settingsResult = await window.electronAPI.invoke('load-settings');
+          const interval = settingsResult.success ? settingsResult.data.captureInterval : 5;
+          
           const autoCaptureResult = await window.electronAPI.invoke('start-auto-capture', {
             sessionId: result.data.id,
-            interval: 5 // 5분 간격
+            interval: interval
           });
           console.log('Auto capture start result:', autoCaptureResult);
           

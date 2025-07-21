@@ -72,6 +72,10 @@ export type MainToRendererEvents = {
     screenshot: ScreenshotData;
     timestamp: string;
   };
+  'notification-clicked': {
+    screenshot: ScreenshotData;
+    timestamp: string;
+  };
 };
 
 // Renderer -> Main 요청

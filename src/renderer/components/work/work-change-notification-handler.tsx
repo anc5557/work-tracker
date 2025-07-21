@@ -1,65 +1,58 @@
 import React, { useEffect, useState } from 'react';
-import { TaskInputDialog } from './task-input-dialog';
+import { WorkStatusDialog } from './work-status-dialog';
 import { useSession } from '../../contexts/session-context';
+import { useToast } from '../../hooks/use-toast';
 import type { ScreenshotData, WorkRecord } from '../../../shared/types';
-import { v4 as uuidv4 } from 'uuid';
 
 export function WorkChangeNotificationHandler() {
-  const [showTaskInput, setShowTaskInput] = useState(false);
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [currentScreenshot, setCurrentScreenshot] = useState<ScreenshotData | null>(null);
   
-  const { endCurrentSessionAndStartNew, endCurrentSession } = useSession();
+  const { 
+    isWorking, 
+    currentRecord, 
+    elapsedTime,
+    endCurrentSessionAndStartNew, 
+    endCurrentSession 
+  } = useSession();
+  const { toast } = useToast();
 
   useEffect(() => {
-    // 시스템 알림 응답 이벤트 리스너
-    const handleNotificationResponse = (data: {
-      action: 'new-work' | 'continue' | 'stop';
+    // 알림 클릭 이벤트 처리 - 다이얼로그 표시
+    const handleNotificationClick = (data: {
       screenshot: ScreenshotData;
       timestamp: string;
     }) => {
-      console.log('Notification response received:', data);
+      console.log('Notification clicked, showing status dialog:', data);
       setCurrentScreenshot(data.screenshot);
-      
-      switch (data.action) {
-        case 'new-work':
-          // 새 작업 시작 - 작업 입력 다이얼로그 표시
-          console.log('Opening task input dialog for new work');
-          setShowTaskInput(true);
-          break;
-        case 'continue':
-          // 현재 작업 계속 - 아무것도 하지 않음
-          console.log('Continuing current work');
-          break;
-        case 'stop':
-          // 작업 종료
-          console.log('Stopping current work');
-          handleStop();
-          break;
-      }
+      setShowStatusDialog(true);
     };
 
-    // IPC 이벤트 리스너 등록
-    window.electronAPI.on('notification-response', handleNotificationResponse);
+    // 기존의 알림 응답 처리는 제거하고, 알림 클릭만 처리
+    window.electronAPI.on('notification-clicked', handleNotificationClick);
 
     // 컴포넌트 언마운트 시 리스너 정리
     return () => {
-      window.electronAPI.removeAllListeners('notification-response');
+      window.electronAPI.removeAllListeners('notification-clicked');
     };
   }, []);
 
-  // "종료" 버튼 클릭 - 현재 세션 종료
-  const handleStop = async () => {
-    setCurrentScreenshot(null);
-    await endCurrentSession();
+  // 계속 진행 - 아무것도 하지 않음
+  const handleContinue = () => {
+    console.log('Continuing current work');
+    toast({
+      title: "업무 계속",
+      description: "현재 작업을 계속 진행합니다.",
+    });
   };
 
-  // 새 작업 입력 완료
-  const handleNewTaskSubmit = async (title: string, description?: string) => {
+  // 다른 업무로 전환
+  const handleSwitchWork = async (title: string, description?: string) => {
     try {
-      console.log('Creating new work record:', { title, description });
+      console.log('Switching to new work:', { title, description });
       
       const newRecord: WorkRecord = {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         title,
         description,
         startTime: new Date().toISOString(),
@@ -68,36 +61,58 @@ export function WorkChangeNotificationHandler() {
       };
 
       console.log('New record created:', newRecord);
-      console.log('Calling endCurrentSessionAndStartNew...');
       
       await endCurrentSessionAndStartNew(newRecord);
       
-      console.log('Session change completed, closing dialog');
-      setShowTaskInput(false);
+      console.log('Work switch completed');
       setCurrentScreenshot(null);
+      
+      toast({
+        title: "업무 전환",
+        description: `"${title}" 작업으로 전환되었습니다.`,
+      });
     } catch (error) {
-      console.error('Error in handleNewTaskSubmit:', error);
+      console.error('Error in handleSwitchWork:', error);
+      toast({
+        title: "오류",
+        description: "업무 전환에 실패했습니다.",
+        variant: "destructive",
+      });
     }
   };
 
-  // 새 작업 입력 건너뛰기
-  const handleTaskInputSkip = () => {
-    setShowTaskInput(false);
-    setCurrentScreenshot(null);
-    // 그냥 현재 상태 유지
+  // 업무 중지
+  const handleStop = async () => {
+    try {
+      console.log('Stopping current work');
+      
+      setCurrentScreenshot(null);
+      await endCurrentSession();
+      
+      toast({
+        title: "업무 완료",
+        description: "현재 작업이 완료되었습니다.",
+      });
+    } catch (error) {
+      console.error('Error stopping work:', error);
+      toast({
+        title: "오류", 
+        description: "업무 종료에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
-    <>
-      {/* 새 작업 입력 다이얼로그 (시스템 알림에서 "예" 선택 시 표시) */}
-      <TaskInputDialog
-        open={showTaskInput}
-        onOpenChange={setShowTaskInput}
-        onSubmit={handleNewTaskSubmit}
-        onSkip={handleTaskInputSkip}
-        onStartNewSession={handleNewTaskSubmit}
-        isSessionChange={true}
-      />
-    </>
+    <WorkStatusDialog
+      open={showStatusDialog}
+      onOpenChange={setShowStatusDialog}
+      currentRecord={currentRecord}
+      elapsedTime={elapsedTime}
+      screenshot={currentScreenshot || undefined}
+      onContinue={handleContinue}
+      onSwitchWork={handleSwitchWork}
+      onStop={handleStop}
+    />
   );
 } 
