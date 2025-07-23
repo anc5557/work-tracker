@@ -780,6 +780,12 @@ export class IpcHandlers {
    * 자동 휴식 이벤트 핸들러를 설정합니다.
    */
   private setupAutoRestEventHandlers(): void {
+    // 세션 상태 확인 콜백 설정
+    this.autoRestService.setSessionStateCallback(async () => {
+      const result = await this.getActiveSession();
+      return result.success && result.data && result.data.isActive;
+    });
+
     this.autoRestService.onEvent(async (event: AutoRestEvent) => {
       try {
         // 렌더러 프로세스에 이벤트 전송

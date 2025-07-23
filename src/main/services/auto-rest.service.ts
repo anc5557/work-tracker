@@ -12,9 +12,33 @@ export class AutoRestService {
   private activityCheckInterval: NodeJS.Timeout | null = null;
   private lastActivityTime: number = Date.now();
   private eventCallbacks: ((event: AutoRestEvent) => void)[] = [];
+  private sessionStateCallback?: () => Promise<boolean>; // 세션 활성 상태 확인 콜백
 
   constructor() {
     this.initialize();
+  }
+
+  /**
+   * 세션 상태 확인 콜백을 설정합니다.
+   */
+  public setSessionStateCallback(callback: () => Promise<boolean>): void {
+    this.sessionStateCallback = callback;
+  }
+
+  /**
+   * 현재 세션이 활성화되어 있는지 확인합니다.
+   */
+  private async checkSessionActive(): Promise<boolean> {
+    if (!this.sessionStateCallback) {
+      return false; // 콜백이 설정되지 않은 경우 비활성 상태로 간주
+    }
+
+    try {
+      return await this.sessionStateCallback();
+    } catch (error) {
+      console.error('Failed to check session state:', error);
+      return false;
+    }
   }
 
   private initialize(): void {
@@ -38,8 +62,18 @@ export class AutoRestService {
    */
   private startActivityMonitoring(): void {
     // 10초마다 시스템 유휴 시간 확인
-    this.activityCheckInterval = setInterval(() => {
+    this.activityCheckInterval = setInterval(async () => {
       if (!this.status.enabled) return;
+
+      // 세션이 활성화되어 있는지 확인
+      const isSessionActive = await this.checkSessionActive();
+      if (!isSessionActive) {
+        // 세션이 비활성화된 경우 휴식 상태 해제
+        if (this.status.isResting) {
+          this.endRest();
+        }
+        return;
+      }
 
       try {
         // macOS에서 시스템 유휴 시간 확인 (초 단위)
@@ -74,8 +108,18 @@ export class AutoRestService {
    * 주기적 체크 (시스템 유휴 시간 API를 사용할 수 없는 경우)
    */
   private startPeriodicCheck(): void {
-    this.activityCheckInterval = setInterval(() => {
+    this.activityCheckInterval = setInterval(async () => {
       if (!this.status.enabled) return;
+
+      // 세션이 활성화되어 있는지 확인
+      const isSessionActive = await this.checkSessionActive();
+      if (!isSessionActive) {
+        // 세션이 비활성화된 경우 휴식 상태 해제
+        if (this.status.isResting) {
+          this.endRest();
+        }
+        return;
+      }
 
       const now = Date.now();
       const timeSinceLastActivity = now - this.lastActivityTime;
