@@ -576,7 +576,7 @@ export function WorkTimer() {
                 {/* 자동 휴식 상태 */}
                 {autoRestStatus && settings && (
                   <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                    {autoRestStatus.enabled ? (
+                    {autoRestStatus.enabled && !currentRecord?.isPaused ? (
                       autoRestStatus.isResting ? (
                         <>
                           <Coffee className="w-3 h-3 text-orange-400 animate-pulse" />
@@ -600,7 +600,7 @@ export function WorkTimer() {
                     ) : (
                       <>
                         <Activity className="w-3 h-3 text-muted-foreground" />
-                        <span>자동 휴식 감지 비활성화</span>
+                        <span>자동 휴식 감지: OFF</span>
                       </>
                     )}
                   </div>
