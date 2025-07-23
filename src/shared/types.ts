@@ -83,7 +83,7 @@ export type MainToRendererEvents = {
 // Renderer -> Main 요청
 export type RendererToMainRequests = {
   'capture-screenshot': { sessionId?: string };
-  'start-work': { title: string; description?: string };
+  'start-work': { title: string; description?: string; tags?: string[] };
   'stop-work': { id: string };
   'save-work-record': WorkRecord;
   'delete-work-record': { id: string };
@@ -107,4 +107,37 @@ export type RendererToMainRequests = {
   'get-default-settings': void;
   // 트레이 업데이트 관련
   'session-status-changed': void;
-}; 
+  // 최근 태그 조회
+  'get-recent-tags': { limit?: number };
+  // 태그별 레포트 조회
+  'get-tag-reports': { 
+    timeRange: 'today' | 'week' | 'month' | 'custom'; 
+    startDate?: string; 
+    endDate?: string; 
+  };
+};
+
+// 태그별 레포트 관련 타입
+export interface TagStats {
+  tag: string;
+  totalDuration: number; // milliseconds
+  recordCount: number;
+  percentage: number; // 전체 대비 비율 (0-100)
+  records: WorkRecord[]; // 해당 태그가 포함된 업무 기록들
+}
+
+export interface TagReportData {
+  totalDuration: number; // 전체 기간 총 시간
+  totalRecords: number; // 전체 기록 수
+  tagStats: TagStats[]; // 태그별 통계
+  timeRange: 'today' | 'week' | 'month' | 'custom';
+  startDate: string;
+  endDate: string;
+}
+
+export interface TagFilterOptions {
+  searchQuery: string;
+  selectedTags: string[];
+  sortBy: 'duration' | 'count' | 'name';
+  sortOrder: 'asc' | 'desc';
+} 

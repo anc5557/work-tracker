@@ -131,9 +131,9 @@ export function WorkTimer() {
     setShowTaskDialog(true);
   };
 
-  const handleTaskSubmit = async (title: string, description?: string) => {
+  const handleTaskSubmit = async (title: string, description?: string, tags?: string[]) => {
     try {
-      const result = await window.electronAPI.invoke('start-work', { title, description });
+      const result = await window.electronAPI.invoke('start-work', { title, description, tags });
       
       if (result.success) {
         startSession(result.data);
@@ -167,7 +167,8 @@ export function WorkTimer() {
     try {
       const result = await window.electronAPI.invoke('start-work', { 
         title: "업무 작업", 
-        description: "업무 내용 미입력" 
+        description: "업무 내용 미입력",
+        tags: []
       });
       
       if (result.success) {
@@ -293,6 +294,19 @@ export function WorkTimer() {
                   <h3 className="font-medium text-lg text-foreground">{currentRecord.title}</h3>
                   {currentRecord.description && (
                     <p className="text-muted-foreground">{currentRecord.description}</p>
+                  )}
+                  {currentRecord.tags && currentRecord.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {currentRecord.tags.map((tag, index) => (
+                        <Badge 
+                          key={index} 
+                          variant="outline" 
+                          className="text-xs"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
                 </div>
                 

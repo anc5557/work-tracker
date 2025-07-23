@@ -55,14 +55,14 @@ export class IpcHandlers {
     });
 
     // 업무 시작
-    ipcMain.handle('start-work', async (_, data: { title: string; description?: string }) => {
+    ipcMain.handle('start-work', async (_, data: { title: string; description?: string; tags?: string[] }) => {
       try {
         const record: WorkRecord = {
           id: uuidv4(),
           title: data.title,
           description: data.description,
           startTime: new Date().toISOString(),
-          tags: [],
+          tags: data.tags || [],
           isActive: true
         };
 
@@ -493,6 +493,37 @@ export class IpcHandlers {
         return { success: true };
       } catch (error) {
         console.error('Failed to handle session status change:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    // 최근 태그 조회
+    ipcMain.handle('get-recent-tags', async (_, data?: { limit?: number }) => {
+      try {
+        const limit = data?.limit || 5;
+        const recentTags = await this.dataService.getRecentTags(limit);
+        return { success: true, data: recentTags };
+      } catch (error) {
+        console.error('Failed to get recent tags:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    // 태그별 레포트 조회
+    ipcMain.handle('get-tag-reports', async (_, data: { 
+      timeRange: 'today' | 'week' | 'month' | 'custom'; 
+      startDate?: string; 
+      endDate?: string; 
+    }) => {
+      try {
+        const tagReports = await this.dataService.getTagReports(
+          data.timeRange,
+          data.startDate,
+          data.endDate
+        );
+        return { success: true, data: tagReports };
+      } catch (error) {
+        console.error('Failed to get tag reports:', error);
         return { success: false, error: (error as Error).message };
       }
     });

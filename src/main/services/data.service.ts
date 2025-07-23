@@ -561,4 +561,188 @@ export class DataService {
       };
     }
   }
+
+  /**
+   * 최근에 사용된 태그들을 조회합니다.
+   */
+  async getRecentTags(limit: number = 5): Promise<string[]> {
+    try {
+      // 최근 30일간의 기록에서 태그 수집
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 30);
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      // 해당 기간의 모든 업무 기록 가져오기
+      const dayDataList = await this.getWorkRecordsInRange(startDateStr, endDateStr);
+      
+      // 모든 태그 수집 및 빈도 계산
+      const tagFrequency: { [tag: string]: number } = {};
+      
+      for (const dayData of dayDataList) {
+        for (const record of dayData.records) {
+          if (record.tags && record.tags.length > 0) {
+            for (const tag of record.tags) {
+              tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
+            }
+          }
+        }
+      }
+
+      // 빈도순으로 정렬하고 상위 N개 반환
+      const sortedTags = Object.entries(tagFrequency)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit)
+        .map(([tag]) => tag);
+
+      return sortedTags;
+
+    } catch (error) {
+      console.error('Failed to get recent tags:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 태그별 레포트 데이터를 계산합니다.
+   */
+  async getTagReports(
+    timeRange: 'today' | 'week' | 'month' | 'custom',
+    startDate?: string,
+    endDate?: string
+  ): Promise<{
+    totalDuration: number;
+    totalRecords: number;
+    tagStats: Array<{
+      tag: string;
+      totalDuration: number;
+      recordCount: number;
+      percentage: number;
+      records: WorkRecord[];
+    }>;
+    timeRange: 'today' | 'week' | 'month' | 'custom';
+    startDate: string;
+    endDate: string;
+  }> {
+    try {
+      // 시간 범위 계산
+      let calculatedStartDate: string;
+      let calculatedEndDate: string;
+
+      if (timeRange === 'custom' && startDate && endDate) {
+        calculatedStartDate = startDate;
+        calculatedEndDate = endDate;
+      } else {
+        const endDateObj = new Date();
+        const startDateObj = new Date();
+
+        switch (timeRange) {
+          case 'today':
+            calculatedStartDate = endDateObj.toISOString().split('T')[0];
+            calculatedEndDate = calculatedStartDate;
+            break;
+          case 'week':
+            startDateObj.setDate(endDateObj.getDate() - 7);
+            calculatedStartDate = startDateObj.toISOString().split('T')[0];
+            calculatedEndDate = endDateObj.toISOString().split('T')[0];
+            break;
+          case 'month':
+            startDateObj.setDate(1);
+            startDateObj.setHours(0, 0, 0, 0);
+            calculatedStartDate = startDateObj.toISOString().split('T')[0];
+            calculatedEndDate = endDateObj.toISOString().split('T')[0];
+            break;
+          default:
+            calculatedStartDate = endDateObj.toISOString().split('T')[0];
+            calculatedEndDate = calculatedStartDate;
+        }
+      }
+
+      // 해당 기간의 모든 업무 기록 가져오기
+      const dayDataList = await this.getWorkRecordsInRange(calculatedStartDate, calculatedEndDate);
+      
+      // 모든 완료된 업무 기록 수집
+      const allRecords: WorkRecord[] = [];
+      for (const dayData of dayDataList) {
+        const completedRecords = dayData.records.filter(record => 
+          record.endTime && record.duration && record.duration > 0
+        );
+        allRecords.push(...completedRecords);
+      }
+
+      // 전체 통계 계산
+      const totalDuration = allRecords.reduce((sum, record) => sum + (record.duration || 0), 0);
+      const totalRecords = allRecords.length;
+
+      // 태그별 데이터 집계
+      const tagMap: { [tag: string]: { records: WorkRecord[]; totalDuration: number } } = {};
+
+      for (const record of allRecords) {
+        if (record.tags && record.tags.length > 0) {
+          for (const tag of record.tags) {
+            if (!tagMap[tag]) {
+              tagMap[tag] = {
+                records: [],
+                totalDuration: 0
+              };
+            }
+            
+            // 중복 방지: 같은 레코드가 여러 태그를 가질 때 각 태그별로 전체 duration을 할당
+            if (!tagMap[tag].records.some(r => r.id === record.id)) {
+              tagMap[tag].records.push(record);
+            }
+            tagMap[tag].totalDuration += (record.duration || 0);
+          }
+        }
+      }
+
+      // 태그가 없는 레코드 처리
+      const untaggedRecords = allRecords.filter(record => !record.tags || record.tags.length === 0);
+      if (untaggedRecords.length > 0) {
+        const untaggedDuration = untaggedRecords.reduce((sum, record) => sum + (record.duration || 0), 0);
+        tagMap['(태그 없음)'] = {
+          records: untaggedRecords,
+          totalDuration: untaggedDuration
+        };
+      }
+
+      // 태그별 통계 생성
+      const tagStats = Object.entries(tagMap).map(([tag, data]) => {
+        const percentage = totalDuration > 0 ? (data.totalDuration / totalDuration) * 100 : 0;
+        
+        return {
+          tag,
+          totalDuration: data.totalDuration,
+          recordCount: data.records.length,
+          percentage: Math.round(percentage * 100) / 100, // 소수점 2자리로 반올림
+          records: data.records.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+        };
+      });
+
+      // 총 시간 기준으로 정렬
+      tagStats.sort((a, b) => b.totalDuration - a.totalDuration);
+
+      return {
+        totalDuration,
+        totalRecords,
+        tagStats,
+        timeRange,
+        startDate: calculatedStartDate,
+        endDate: calculatedEndDate
+      };
+
+    } catch (error) {
+      console.error('Failed to get tag reports:', error);
+      return {
+        totalDuration: 0,
+        totalRecords: 0,
+        tagStats: [],
+        timeRange,
+        startDate: startDate || new Date().toISOString().split('T')[0],
+        endDate: endDate || new Date().toISOString().split('T')[0]
+      };
+    }
+  }
 } 

@@ -24,7 +24,8 @@ import {
   Play,
   CheckCircle2,
   Image as ImageIcon,
-  Timer
+  Timer,
+  Plus
 } from 'lucide-react';
 import type { WorkRecord } from '../../../shared/types';
 
@@ -47,6 +48,9 @@ export function SessionDetails() {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [recentTags, setRecentTags] = useState<string[]>([]);
   const [selectedScreenshot, setSelectedScreenshot] = useState<Screenshot | null>(null);
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -67,6 +71,7 @@ export function SessionDetails() {
         setSession(sessionResult.data);
         setEditTitle(sessionResult.data.title);
         setEditDescription(sessionResult.data.description || '');
+        setEditTags(sessionResult.data.tags || []);
       } else {
         toast({
           title: "오류",
@@ -108,6 +113,38 @@ export function SessionDetails() {
     }
   };
 
+  const loadRecentTags = async () => {
+    try {
+      const result = await window.electronAPI.invoke('get-recent-tags', { limit: 5 });
+      if (result.success) {
+        setRecentTags(result.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load recent tags:', error);
+    }
+  };
+
+  const addTag = (tag?: string) => {
+    const targetTag = tag || tagInput.trim();
+    if (targetTag && !editTags.includes(targetTag)) {
+      setEditTags([...editTags, targetTag]);
+      if (!tag) {
+        setTagInput(''); // 직접 입력한 경우만 입력창 클리어
+      }
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setEditTags(editTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleTagKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
   const handleSaveEdit = async () => {
     if (!session || !editTitle.trim()) return;
     
@@ -116,6 +153,7 @@ export function SessionDetails() {
         ...session,
         title: editTitle.trim(),
         description: editDescription.trim() || undefined,
+        tags: editTags,
       };
       
       const result = await window.electronAPI.invoke('save-work-record', updatedSession);
@@ -323,7 +361,10 @@ export function SessionDetails() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setIsEditing(true);
+                    loadRecentTags();
+                  }}
                   className="flex items-center gap-2"
                 >
                   <Edit3 className="w-4 h-4" />
@@ -348,6 +389,8 @@ export function SessionDetails() {
                     setIsEditing(false);
                     setEditTitle(session.title);
                     setEditDescription(session.description || '');
+                    setEditTags(session.tags || []);
+                    setTagInput('');
                   }}
                   className="flex items-center gap-2"
                 >
@@ -417,6 +460,95 @@ export function SessionDetails() {
                       <span className="text-muted-foreground italic">업무 내용 미입력</span>
                     )}
                   </p>
+                </div>
+              )}
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">태그</label>
+              {isEditing ? (
+                <div className="space-y-3">
+                  {/* 기존 태그 표시 */}
+                  {editTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {editTags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="flex items-center gap-1 px-2 py-1"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => removeTag(tag)}
+                            className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* 최근 태그 추천 */}
+                  {recentTags.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">최근 사용한 태그</div>
+                      <div className="flex flex-wrap gap-1">
+                        {recentTags
+                          .filter(recentTag => !editTags.includes(recentTag))
+                          .map((tag) => (
+                          <Button
+                            key={tag}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addTag(tag)}
+                            className="h-7 px-2 text-xs bg-muted/50 hover:bg-muted border-dashed hover:border-solid transition-all"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            {tag}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 태그 입력 */}
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="태그 입력 후 Enter 또는 추가 버튼"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={handleTagKeyPress}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => addTag()}
+                      disabled={!tagInput.trim() || editTags.includes(tagInput.trim())}
+                      className="px-3"
+                    >
+                      추가
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="pl-1 min-h-[60px] flex items-start py-2">
+                  {session && session.tags && session.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {session.tags.map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-foreground">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground italic">태그 없음</p>
+                  )}
                 </div>
               )}
             </div>
