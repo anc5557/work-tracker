@@ -15,7 +15,7 @@ export function WorkTimer() {
   const [autoCaptureStatus, setAutoCaptureStatus] = useState<AutoCaptureStatus | null>(null);
   const [autoRestStatus, setAutoRestStatus] = useState<AutoRestStatus | null>(null);
   const { toast } = useToast();
-  const { isWorking, currentRecord, elapsedTime, startSession, stopSession, checkSession } = useSession();
+  const { isWorking, currentRecord, elapsedTime, startSession, stopSession, pauseSession, resumeSession, checkSession } = useSession();
 
   // 설정과 자동 캡처 상태 로드
   useEffect(() => {
@@ -296,8 +296,8 @@ export function WorkTimer() {
       const result = await window.electronAPI.invoke('pause-work', { id: currentRecord.id });
       
       if (result.success) {
-        // 세션 컨텍스트 업데이트 (중지 상태로)
-        await checkSession();
+        // 즉시 UI 업데이트 (중지 상태로)
+        pauseSession(result.data);
         
         toast({
           title: "업무 중지",
@@ -327,8 +327,8 @@ export function WorkTimer() {
       const result = await window.electronAPI.invoke('resume-work', { id: currentRecord.id });
       
       if (result.success) {
-        // 세션 컨텍스트 업데이트 (재개 상태로)
-        await checkSession();
+        // 즉시 UI 업데이트 (재개 상태로)
+        resumeSession(result.data);
         
         // 자동 캡처 재시작
         if (settings?.autoCapture) {

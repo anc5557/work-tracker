@@ -8,6 +8,8 @@ interface SessionContextType {
   elapsedTime: number;
   startSession: (record: WorkRecord) => void;
   stopSession: () => void;
+  pauseSession: (record: WorkRecord) => void;
+  resumeSession: (record: WorkRecord) => void;
   restoreSession: () => Promise<void>;
   checkSession: () => Promise<void>;
   endCurrentSessionAndStartNew: (newRecord: WorkRecord) => Promise<void>;
@@ -211,6 +213,38 @@ export function SessionProvider({ children }: SessionProviderProps) {
     console.log('Session state cleared');
     console.log('=== stopSession END ===');
   }, [saveSessionToStorage, isWorking, currentRecord]);
+
+  const pauseSession = useCallback((updatedRecord: WorkRecord) => {
+    console.log('=== pauseSession START ===');
+    console.log('Pausing session with record:', updatedRecord);
+    
+    // 즉시 중지 상태로 업데이트
+    const pausedRecord = { ...updatedRecord, isPaused: true };
+    setCurrentRecord(pausedRecord);
+    
+    // 중지 상태에서는 경과 시간 고정
+    const calculatedTime = calculateWorkingTime(pausedRecord);
+    setElapsedTime(calculatedTime);
+    
+    saveSessionToStorage(pausedRecord, true);
+    
+    console.log('Session paused');
+    console.log('=== pauseSession END ===');
+  }, [saveSessionToStorage, calculateWorkingTime]);
+
+  const resumeSession = useCallback((updatedRecord: WorkRecord) => {
+    console.log('=== resumeSession START ===');
+    console.log('Resuming session with record:', updatedRecord);
+    
+    // 즉시 재개 상태로 업데이트
+    const resumedRecord = { ...updatedRecord, isPaused: false };
+    setCurrentRecord(resumedRecord);
+    
+    saveSessionToStorage(resumedRecord, true);
+    
+    console.log('Session resumed');
+    console.log('=== resumeSession END ===');
+  }, [saveSessionToStorage]);
 
   const checkSession = useCallback(async () => {
     if (sessionCheckingRef.current) return;
@@ -457,6 +491,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
     elapsedTime,
     startSession,
     stopSession,
+    pauseSession,
+    resumeSession,
     restoreSession,
     checkSession,
     endCurrentSessionAndStartNew,
