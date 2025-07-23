@@ -393,9 +393,17 @@ export function WorkTimer() {
         <Card>
           <CardHeader className="text-center pb-4">
             <div className="flex justify-center mb-4">
-              <div className="p-4 rounded-full bg-muted text-muted-foreground">
+              <div className={`p-4 rounded-full ${
+                isWorking && autoRestStatus?.isResting
+                  ? 'bg-orange-50 text-orange-400 border-2 border-orange-200'
+                  : 'bg-muted text-muted-foreground'
+              }`}>
                 {isWorking ? (
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  autoRestStatus?.isResting ? (
+                    <Coffee className="w-6 h-6 animate-pulse" />
+                  ) : (
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  )
                 ) : (
                   <Target className="w-6 h-6" />
                 )}
@@ -404,8 +412,10 @@ export function WorkTimer() {
             <CardTitle className="text-2xl font-semibold text-foreground">
               {isWorking 
                 ? currentRecord?.isPaused 
-                  ? '작업 중지됨' 
-                  : '작업 진행 중' 
+                  ? '작업 중지됨'
+                  : autoRestStatus?.isResting 
+                    ? '자동 휴식 중'
+                    : '작업 진행 중' 
                 : '새로운 업무 시작'
               }
             </CardTitle>
@@ -413,7 +423,9 @@ export function WorkTimer() {
               {isWorking 
                 ? currentRecord?.isPaused
                   ? '작업이 중지되었습니다. 언제든지 재개할 수 있습니다'
-                  : '집중해서 작업을 진행하고 있습니다' 
+                  : autoRestStatus?.isResting
+                    ? '활동이 감지되지 않아 자동으로 휴식 상태입니다'
+                    : '집중해서 작업을 진행하고 있습니다' 
                 : '생산적인 하루를 시작해보세요'
               }
             </CardDescription>
@@ -449,10 +461,24 @@ export function WorkTimer() {
                 
                 {/* 타이머 디스플레이 */}
                 <div className="text-center">
-                  <div className="text-3xl font-mono font-semibold text-foreground bg-muted px-6 py-3 rounded-lg inline-block">
+                  <div className={`text-3xl font-mono font-semibold px-6 py-3 rounded-lg inline-block ${
+                    autoRestStatus?.isResting 
+                      ? 'text-orange-400 bg-orange-50 border border-orange-200' 
+                      : 'text-foreground bg-muted'
+                  }`}>
                     {formatDuration(elapsedTime)}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">경과 시간</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {autoRestStatus?.isResting ? '휴식 중 (타이머 일시정지)' : '경과 시간'}
+                  </p>
+                  {autoRestStatus?.isResting && autoRestStatus.restStartTime && (
+                    <p className="text-xs text-orange-500 mt-1">
+                      휴식 시작: {new Date(autoRestStatus.restStartTime).toLocaleTimeString('ko-KR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -498,6 +524,37 @@ export function WorkTimer() {
                     캡처
                   </Button>
                 </div>
+              ) : autoRestStatus?.isResting ? (
+                <div className="space-y-3">
+                  <Button 
+                    onClick={resetActivityTimer}
+                    size="lg"
+                    className="w-full py-4 text-lg font-medium bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    <Activity className="w-5 h-5 mr-2" />
+                    활동 재개하기
+                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      onClick={handleStopWork}
+                      variant="destructive"
+                      size="lg"
+                      className="py-4 font-medium"
+                    >
+                      <Square className="w-4 h-4 mr-2" />
+                      완료
+                    </Button>
+                    <Button 
+                      onClick={handleCaptureScreenshot}
+                      variant="outline"
+                      size="lg"
+                      className="py-4 font-medium"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      캡처
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   <Button 
@@ -540,6 +597,11 @@ export function WorkTimer() {
                       <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
                       <span>작업 중지됨</span>
                     </>
+                  ) : autoRestStatus?.isResting ? (
+                    <>
+                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                      <span className="text-orange-600">자동 휴식 중</span>
+                    </>
                   ) : (
                     <>
                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -581,15 +643,6 @@ export function WorkTimer() {
                         <>
                           <Coffee className="w-3 h-3 text-orange-400 animate-pulse" />
                           <span className="text-orange-400">휴식 중</span>
-                          <Button
-                            onClick={resetActivityTimer}
-                            size="sm"
-                            variant="outline"
-                            className="h-5 px-2 text-xs border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-white"
-                          >
-                            <Activity className="w-2 h-2 mr-1" />
-                            활동 재개
-                          </Button>
                         </>
                       ) : (
                         <>
