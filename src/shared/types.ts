@@ -112,6 +112,8 @@ export type MainToRendererEvents = {
     timestamp: string;
   };
   'stop-current-session': void;
+  'pause-current-session': void;
+  'resume-current-session': void;
   'start-new-session-from-tray': void;
   // 자동 휴식 관련 이벤트
   'auto-rest-status-changed': AutoRestStatus;

@@ -772,7 +772,11 @@ export class IpcHandlers {
    */
   public updateTrayTitle(): void {
     if (this.trayUpdateCallback) {
-      this.trayUpdateCallback();
+      try {
+        this.trayUpdateCallback();
+      } catch (error) {
+        console.error('Failed to update tray title via callback:', error);
+      }
     }
   }
 

@@ -33,7 +33,9 @@ class WorkTrackerApp {
    */
   public forceUpdateTrayTitle(): void {
     if (this.tray && !this.tray.isDestroyed()) {
-      this.updateTrayTitle();
+      this.updateTrayTitle().catch(error => {
+        console.error('Failed to force update tray title:', error);
+      });
     }
   }
 
@@ -525,16 +527,46 @@ class WorkTrackerApp {
    * 트레이 타이틀 업데이트를 시작합니다.
    */
   private startTrayUpdater(): void {
+    // 기존 타이머가 있으면 정리
+    if (this.trayUpdateInterval) {
+      clearInterval(this.trayUpdateInterval);
+      this.trayUpdateInterval = null;
+    }
+    if (this.trayMenuUpdateInterval) {
+      clearInterval(this.trayMenuUpdateInterval);
+      this.trayMenuUpdateInterval = null;
+    }
+
     this.updateTrayTitle();
     
     // 1초마다 타이틀 업데이트, 30초마다 메뉴 업데이트
     this.trayUpdateInterval = setInterval(() => {
-      this.updateTrayTitle();
+      // 트레이가 유효한지 확인
+      if (this.tray && !this.tray.isDestroyed()) {
+        this.updateTrayTitle();
+      } else {
+        // 트레이가 파괴되었으면 인터벌 정리
+        if (this.trayUpdateInterval) {
+          clearInterval(this.trayUpdateInterval);
+          this.trayUpdateInterval = null;
+        }
+      }
     }, 1000);
 
     // 30초마다 메뉴 상태 업데이트 (세션 상태 변화 감지)
     this.trayMenuUpdateInterval = setInterval(() => {
-      this.updateTrayMenu();
+      // 트레이가 유효한지 확인
+      if (this.tray && !this.tray.isDestroyed()) {
+        this.updateTrayMenu().catch(error => {
+          console.error('Failed to update tray menu in interval:', error);
+        });
+      } else {
+        // 트레이가 파괴되었으면 인터벌 정리
+        if (this.trayMenuUpdateInterval) {
+          clearInterval(this.trayMenuUpdateInterval);
+          this.trayMenuUpdateInterval = null;
+        }
+      }
     }, 30000);
   }
 
