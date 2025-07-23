@@ -61,12 +61,17 @@ export function SessionProvider({ children }: SessionProviderProps) {
       clearInterval(intervalRef.current);
     }
     
-    if (isWorking && currentRecord) {
+    // 업무 중이고 중지되지 않은 상태일 때만 타이머 실행
+    if (isWorking && currentRecord && !currentRecord.isPaused) {
       intervalRef.current = setInterval(() => {
-        const now = new Date().getTime();
-        const start = new Date(currentRecord.startTime).getTime();
-        setElapsedTime(now - start);
+        // timeline을 활용하여 실제 업무 시간 계산
+        const calculatedTime = calculateWorkingTime(currentRecord);
+        setElapsedTime(calculatedTime);
       }, 1000);
+    } else if (isWorking && currentRecord && currentRecord.isPaused) {
+      // 일시정지 상태일 때는 마지막 계산된 시간으로 고정
+      const calculatedTime = calculateWorkingTime(currentRecord);
+      setElapsedTime(calculatedTime);
     }
 
     return () => {
@@ -74,7 +79,58 @@ export function SessionProvider({ children }: SessionProviderProps) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isWorking, currentRecord]);
+  }, [isWorking, currentRecord, currentRecord?.isPaused]);
+
+  // 실제 업무 시간 계산 함수 (중지된 시간 제외)
+  const calculateWorkingTime = useCallback((record: WorkRecord): number => {
+    if (!record) return 0;
+
+    const now = new Date().getTime();
+    const startTime = new Date(record.startTime).getTime();
+    
+    if (!record.timeline || record.timeline.length === 0) {
+      // timeline이 없으면 기본 계산
+      if (record.isPaused) {
+        // 일시정지 상태이지만 timeline이 없으면 정확한 계산 불가
+        // 안전하게 0을 반환 (실제로는 pause 시 timeline이 생성됨)
+        return 0;
+      } else {
+        // 진행 중이면 시작부터 현재까지
+        return now - startTime;
+      }
+    }
+
+    // timeline을 활용하여 실제 업무 시간 계산
+    let totalWorkingTime = 0;
+    let lastWorkTime = startTime;
+    let currentlyWorking = true; // 시작할 때는 업무 중
+
+    for (const item of record.timeline) {
+      const itemTime = new Date(item.timestamp).getTime();
+      
+      if (item.type === 'pause' || item.type === 'rest') {
+        // 중지/휴식 시작: 현재까지의 업무 시간을 누적
+        if (currentlyWorking) {
+          totalWorkingTime += itemTime - lastWorkTime;
+          currentlyWorking = false;
+        }
+      } else if (item.type === 'resume') {
+        // 재개: 재개 시점을 기록
+        if (!currentlyWorking) {
+          lastWorkTime = itemTime;
+          currentlyWorking = true;
+        }
+      }
+    }
+
+    // 현재 상태에 따라 마지막 구간 처리
+    if (currentlyWorking && !record.isPaused) {
+      // 현재 업무 중이고 일시정지가 아니면 현재 시간까지 누적
+      totalWorkingTime += now - lastWorkTime;
+    }
+
+    return totalWorkingTime;
+  }, []);
 
   // 주기적 동기화 (3분마다)
   useEffect(() => {
@@ -174,10 +230,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
             setCurrentRecord(activeSession);
             setIsWorking(true);
             
-            // 경과 시간 계산
-            const now = new Date().getTime();
-            const start = new Date(activeSession.startTime).getTime();
-            setElapsedTime(now - start);
+            // 경과 시간 계산 (중지된 시간 제외)
+            const calculatedTime = calculateWorkingTime(activeSession);
+            setElapsedTime(calculatedTime);
             
             saveSessionToStorage(activeSession, true);
           }
@@ -203,9 +258,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
           setCurrentRecord(storedSession.currentRecord);
           setIsWorking(true);
           
-          const now = new Date().getTime();
-          const start = new Date(storedSession.currentRecord.startTime).getTime();
-          setElapsedTime(now - start);
+          const calculatedTime = calculateWorkingTime(storedSession.currentRecord);
+          setElapsedTime(calculatedTime);
         }
       }
     } finally {
@@ -223,9 +277,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
         setCurrentRecord(storedSession.currentRecord);
         setIsWorking(true);
         
-        const now = new Date().getTime();
-        const start = new Date(storedSession.currentRecord.startTime).getTime();
-        setElapsedTime(now - start);
+        const calculatedTime = calculateWorkingTime(storedSession.currentRecord);
+        setElapsedTime(calculatedTime);
       }
       
       // 그 다음 백엔드와 동기화
