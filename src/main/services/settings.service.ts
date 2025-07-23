@@ -18,7 +18,10 @@ export class SettingsService {
       theme: 'dark',
       maxScreenshots: 100,
       screenshotQuality: 'high',
-      recentTagsLimit: 10 // 기본 10개
+      recentTagsLimit: 10, // 기본 10개
+      // 자동 휴식 감지 설정
+      autoRestEnabled: true, // 기본적으로 활성화
+      autoRestIdleTime: 5 // 기본 5분
     };
     this.ensureDirectoryExists();
   }
@@ -120,6 +123,18 @@ export class SettingsService {
     // 최근 태그 개수 검증 (3-50 범위)
     if (validated.recentTagsLimit < 3 || validated.recentTagsLimit > 50) {
       validated.recentTagsLimit = 10; // 기본값으로 설정
+    }
+
+    // 자동 휴식 기능 활성화 여부 검증
+    if (typeof validated.autoRestEnabled !== 'boolean') {
+      validated.autoRestEnabled = true; // 기본값으로 설정
+    }
+
+    // 자동 휴식 대기 시간 검증 (1-30분 범위)
+    if (typeof validated.autoRestIdleTime !== 'number' || 
+        validated.autoRestIdleTime < 1 || 
+        validated.autoRestIdleTime > 30) {
+      validated.autoRestIdleTime = 5; // 기본값으로 설정
     }
 
     return validated;

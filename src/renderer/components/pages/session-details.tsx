@@ -19,13 +19,15 @@ import {
   Folder, 
   ExternalLink,
   ZoomIn,
-  Download,
   Trash2,
   Play,
   CheckCircle2,
   Image as ImageIcon,
   Timer,
-  Plus
+  Plus,
+  Coffee,
+  Activity,
+  Pause
 } from 'lucide-react';
 import type { WorkRecord } from '../../../shared/types';
 
@@ -35,6 +37,17 @@ interface Screenshot {
   path: string;
   timestamp: string;
   imageData?: string; // base64 이미지 데이터
+}
+
+interface TimelineItem {
+  id: string;
+  timestamp: string;
+  type: string;
+  isTimelineEvent: boolean;
+  description?: string;
+  duration?: number;
+  screenshot?: Screenshot;
+  screenshotIndex?: number;
 }
 
 export function SessionDetails() {
@@ -606,144 +619,82 @@ export function SessionDetails() {
           </CardHeader>
           <CardContent>
             {screenshots.length > 0 ? (
-              <div className="space-y-6">
-                {/* Screenshot Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {screenshots.map((screenshot, index) => (
-                    <div 
-                      key={screenshot.id}
-                      className="group relative bg-card rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 hover:shadow-lg transition-all duration-200 border border-border/50"
-                    >
-                      {/* Image preview */}
-                      <div className="aspect-video bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 flex items-center justify-center relative overflow-hidden">
-                        {screenshot.imageData ? (
-                          <img 
-                            src={screenshot.imageData} 
-                            alt={`스크린샷 ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <>
-                            <ImageIcon className="w-8 h-8 text-muted-foreground/70" />
-                            {/* Decorative pattern */}
-                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-background/5 to-background/10"></div>
-                          </>
-                        )}
-                      </div>
-                      
-                      {/* Overlay with actions */}
-                      <div className="absolute inset-0 bg-background/95 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => openImageDialog(screenshot)}
-                            className="h-8 w-8 p-0 shadow-lg"
-                            title="큰 이미지로 보기"
-                          >
-                            <ZoomIn className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenScreenshot(screenshot)}
-                            className="h-8 w-8 p-0 shadow-lg"
-                            title="외부 앱으로 열기"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleShowInFolder(screenshot)}
-                            className="h-8 w-8 p-0 shadow-lg"
-                            title="폴더에서 보기"
-                          >
-                            <Folder className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      {/* Timestamp */}
-                      <div className="absolute bottom-2 left-2 right-2">
-                        <div className="bg-background/95 backdrop-blur-sm text-foreground text-xs px-2 py-1.5 rounded-md border border-border/50 text-center shadow-sm">
-                          <Clock className="w-3 h-3 inline mr-1" />
-                          {new Date(screenshot.timestamp).toLocaleTimeString('ko-KR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit'
-                          })}
-                        </div>
-                      </div>
-                      
-                      {/* Index */}
-                      <div className="absolute top-2 left-2">
-                        <div className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full font-medium shadow-sm">
-                          #{index + 1}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Timeline */}
-                <div className="pt-6 border-t border-border">
-                  <h3 className="text-lg font-medium mb-4 text-foreground flex items-center gap-2">
-                    <Timer className="w-5 h-5 text-primary" />
-                    활동 타임라인
-                  </h3>
-                  <ScrollArea className="h-64">
-                    <div className="space-y-3">
-                      {/* Session start */}
-                      <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20 shadow-sm">
-                        <div className="w-3 h-3 bg-primary rounded-full shadow-sm"></div>
-                        <div className="flex-1">
-                          <p className="font-medium text-primary flex items-center gap-2">
-                            <Play className="w-4 h-4" />
-                            세션 시작
-                          </p>
-                          <p className="text-sm text-muted-foreground">{formatDate(session.startTime)}</p>
-                        </div>
-                      </div>
-
-                      {/* Screenshots */}
-                      {screenshots.map((screenshot, index) => (
-                        <div key={screenshot.id} className="flex items-center gap-3 p-4 bg-gradient-to-r from-secondary/15 to-secondary/5 rounded-xl border border-secondary/25 shadow-sm">
-                          <div className="w-3 h-3 bg-secondary rounded-full shadow-sm"></div>
-                          <div className="flex-1">
-                            <p className="font-medium text-foreground flex items-center gap-2">
-                              <Camera className="w-4 h-4" />
-                              스크린샷 #{index + 1} 캡처
-                            </p>
-                            <p className="text-sm text-muted-foreground">{formatDate(screenshot.timestamp)}</p>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openImageDialog(screenshot)}
-                            className="text-secondary-foreground hover:text-foreground hover:bg-secondary/20"
-                          >
-                            보기
-                          </Button>
-                        </div>
-                      ))}
-
-                      {/* Session end */}
-                      {session.endTime && (
-                        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-muted/50 to-muted/20 rounded-xl border border-border shadow-sm">
-                          <div className="w-3 h-3 bg-muted-foreground rounded-full shadow-sm"></div>
-                          <div className="flex-1">
-                            <p className="font-medium text-foreground flex items-center gap-2">
-                              <CheckCircle2 className="w-4 h-4" />
-                              세션 종료
-                            </p>
-                            <p className="text-sm text-muted-foreground">{formatDate(session.endTime)}</p>
-                          </div>
-                        </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {screenshots.map((screenshot, index) => (
+                  <div 
+                    key={screenshot.id}
+                    className="group relative bg-card rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 hover:shadow-lg transition-all duration-200 border border-border/50"
+                  >
+                    {/* Image preview */}
+                    <div className="aspect-video bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 flex items-center justify-center relative overflow-hidden">
+                      {screenshot.imageData ? (
+                        <img 
+                          src={screenshot.imageData} 
+                          alt={`스크린샷 ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <>
+                          <ImageIcon className="w-8 h-8 text-muted-foreground/70" />
+                          {/* Decorative pattern */}
+                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-background/5 to-background/10"></div>
+                        </>
                       )}
                     </div>
-                  </ScrollArea>
-                </div>
+                    
+                    {/* Overlay with actions */}
+                    <div className="absolute inset-0 bg-background/95 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => openImageDialog(screenshot)}
+                          className="h-8 w-8 p-0 shadow-lg"
+                          title="큰 이미지로 보기"
+                        >
+                          <ZoomIn className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenScreenshot(screenshot)}
+                          className="h-8 w-8 p-0 shadow-lg"
+                          title="외부 앱으로 열기"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleShowInFolder(screenshot)}
+                          className="h-8 w-8 p-0 shadow-lg"
+                          title="폴더에서 보기"
+                        >
+                          <Folder className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Timestamp */}
+                    <div className="absolute bottom-2 left-2 right-2">
+                      <div className="bg-background/95 backdrop-blur-sm text-foreground text-xs px-2 py-1.5 rounded-md border border-border/50 text-center shadow-sm">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        {new Date(screenshot.timestamp).toLocaleTimeString('ko-KR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* Index */}
+                    <div className="absolute top-2 left-2">
+                      <div className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full font-medium shadow-sm">
+                        #{index + 1}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-12 space-y-4">
@@ -756,6 +707,170 @@ export function SessionDetails() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Activity Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <Activity className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">활동 타임라인</h2>
+                <p className="text-sm text-muted-foreground font-normal">
+                  세션 동안의 모든 활동을 시간순으로 보여줍니다
+                </p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-96">
+              <div className="space-y-3">
+                {(() => {
+                  // 모든 타임라인 아이템을 하나의 배열로 합치고 시간순으로 정렬
+                  const allTimelineItems: TimelineItem[] = [];
+                  
+                  if (session.timeline) {
+                    // 새로운 타임라인 구조의 아이템들 추가
+                    session.timeline.forEach(item => {
+                      allTimelineItems.push({
+                        ...item,
+                        timestamp: item.timestamp,
+                        type: item.type,
+                        isTimelineEvent: true
+                      });
+                    });
+                  } else {
+                    // 기존 구조를 위한 세션 시작 아이템 추가  
+                    allTimelineItems.push({
+                      id: 'session-start',
+                      timestamp: session.startTime,
+                      type: 'work',
+                      isTimelineEvent: true,
+                      description: '세션 시작'
+                    });
+                  }
+                  
+                  // 스크린샷 아이템들 추가
+                  screenshots.forEach((screenshot, index) => {
+                    allTimelineItems.push({
+                      id: `screenshot-${screenshot.id}`,
+                      timestamp: screenshot.timestamp,
+                      type: 'screenshot',
+                      isTimelineEvent: false,
+                      screenshot: screenshot,
+                      screenshotIndex: index
+                    });
+                  });
+                  
+                  // 세션 종료 아이템 추가 (세션이 완료된 경우)
+                  if (session.endTime) {
+                    allTimelineItems.push({
+                      id: 'session-end',
+                      timestamp: session.endTime,
+                      type: 'end',
+                      isTimelineEvent: true,
+                      description: '세션 종료'
+                    });
+                  }
+                  
+                  // 시간순으로 정렬 (최신 순)
+                  allTimelineItems.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                  
+                  return allTimelineItems.map((item) => {
+                    if (item.type === 'screenshot' && item.screenshot && item.screenshotIndex !== undefined) {
+                      return (
+                        <div key={item.id} className="flex items-center gap-3 p-4 bg-gradient-to-r from-secondary/15 to-secondary/5 rounded-xl border border-secondary/25 shadow-sm">
+                          <div className="w-3 h-3 bg-secondary rounded-full shadow-sm"></div>
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground flex items-center gap-2">
+                              <Camera className="w-4 h-4" />
+                              스크린샷 #{item.screenshotIndex + 1} 캡처
+                            </p>
+                            <p className="text-sm text-muted-foreground">{formatDate(item.timestamp)}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openImageDialog(item.screenshot!)}
+                            className="text-secondary-foreground hover:text-foreground hover:bg-secondary/20"
+                          >
+                            보기
+                          </Button>
+                        </div>
+                      );
+                    } else if (item.type === 'work' || item.type === 'rest' || item.type === 'resume' || item.type === 'pause') {
+                      return (
+                        <div key={item.id} className={`flex items-center gap-3 p-4 rounded-xl border shadow-sm ${
+                          item.type === 'work' 
+                            ? 'bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20'
+                            : item.type === 'pause'
+                            ? 'bg-gradient-to-r from-orange-50 to-orange-25 border-orange-200'
+                            : item.type === 'rest'
+                            ? 'bg-gradient-to-r from-orange-100/50 to-orange-50/30 border-orange-200/50 dark:from-orange-900/20 dark:to-orange-800/10 dark:border-orange-700/30'
+                            : 'bg-gradient-to-r from-green-100/50 to-green-50/30 border-green-200/50 dark:from-green-900/20 dark:to-green-800/10 dark:border-green-700/30'
+                        }`}>
+                          <div className={`w-3 h-3 rounded-full shadow-sm ${
+                            item.type === 'work' 
+                              ? 'bg-primary'
+                              : item.type === 'rest'
+                              ? 'bg-orange-400'
+                              : 'bg-green-400'
+                          }`}></div>
+                          <div className="flex-1">
+                            <p className={`font-medium flex items-center gap-2 ${
+                              item.type === 'work' 
+                                ? 'text-primary'
+                                : item.type === 'rest'
+                                ? 'text-orange-600 dark:text-orange-400'
+                                : 'text-green-600 dark:text-green-400'
+                            }`}>
+                              {item.type === 'work' && <Play className="w-4 h-4" />}
+                              {item.type === 'rest' && <Coffee className="w-4 h-4" />}
+                              {item.type === 'resume' && <Activity className="w-4 h-4" />}
+                              {item.type === 'pause' && <Pause className="w-4 h-4" />}
+                              {item.description || (
+                                item.type === 'work' ? '업무 시작' :
+                                item.type === 'rest' ? '휴식 시작' :
+                                item.type === 'resume' ? '업무 재개' :
+                                item.type === 'pause' ? '업무 중지' : ''
+                              )}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDate(item.timestamp)}
+                              {item.duration && item.type === 'rest' && (
+                                <span className="ml-2 text-orange-600 dark:text-orange-400 font-medium">
+                                  ({Math.floor(item.duration / (1000 * 60))}분간 휴식)
+                                </span>
+                              )}
+                            </p>
+                            {item.description && item.id !== 'session-start' && (
+                              <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    } else if (item.type === 'end') {
+                      return (
+                        <div key={item.id} className="flex items-center gap-3 p-4 bg-gradient-to-r from-muted/50 to-muted/20 rounded-xl border border-border shadow-sm">
+                          <div className="w-3 h-3 bg-muted-foreground rounded-full shadow-sm"></div>
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4" />
+                              세션 종료
+                            </p>
+                            <p className="text-sm text-muted-foreground">{formatDate(item.timestamp)}</p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  });
+                })()}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>

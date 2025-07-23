@@ -78,6 +78,11 @@ export function Settings() {
       errors.maxScreenshots = '최대 스크린샷 수는 10~1000 사이의 값이어야 합니다.';
     }
 
+    // 자동 휴식 대기 시간 유효성 검증
+    if (settings.autoRestIdleTime < 1 || settings.autoRestIdleTime > 30) {
+      errors.autoRestIdleTime = '자동 휴식 대기 시간은 1~30분 사이의 값이어야 합니다.';
+    }
+
     return errors;
   };
 
@@ -102,6 +107,16 @@ export function Settings() {
       const result = await window.electronAPI.invoke('save-settings', settings);
       
       if (result.success) {
+        // 자동 휴식 설정이 변경된 경우 즉시 적용
+        try {
+          await window.electronAPI.invoke('update-auto-rest-settings', {
+            enabled: settings.autoRestEnabled,
+            idleTime: settings.autoRestIdleTime
+          });
+        } catch (error) {
+          console.error('Failed to update auto rest settings:', error);
+        }
+
         toast({
           title: "설정 저장됨",
           description: "모든 설정이 성공적으로 저장되었습니다.",
@@ -303,6 +318,75 @@ export function Settings() {
                   업무 시작 시 표시할 최근 사용 태그 개수 (3-50개)
                 </p>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Auto Rest Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Auto Rest Detection</CardTitle>
+            <CardDescription>자동 휴식 감지 기능을 설정합니다.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Auto Rest Detection</label>
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={settings.autoRestEnabled}
+                  onChange={(e) => updateSetting('autoRestEnabled', e.target.checked)}
+                  className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
+                />
+                <span className="text-sm text-muted-foreground">
+                  키보드/마우스 입력이 없을 때 자동으로 휴식 상태로 전환
+                </span>
+              </div>
+            </div>
+
+            {settings.autoRestEnabled && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Idle Time Before Rest (minutes)</label>
+                <Input
+                  type="number"
+                  value={settings.autoRestIdleTime}
+                  onChange={(e) => updateSetting('autoRestIdleTime', parseInt(e.target.value) || 5)}
+                  min={1}
+                  max={30}
+                  placeholder="대기 시간 (분)"
+                  className={validationErrors.autoRestIdleTime ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                />
+                {validationErrors.autoRestIdleTime && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {validationErrors.autoRestIdleTime}
+                  </p>
+                )}
+                {!validationErrors.autoRestIdleTime && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    입력이 없어도 휴식 상태로 전환되기까지의 시간 (1-30분)
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <h4 className="text-sm font-medium text-foreground">기능 설명</h4>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>• 설정된 시간 동안 키보드/마우스 입력이 없으면 자동으로 "휴식 중" 상태로 전환됩니다.</li>
+                <li>• 휴식 시작 시 macOS 알림으로 사용자에게 안내합니다.</li>
+                <li>• 업무 기록에 "휴식 시작" 및 "업무 재개" 내역이 자동으로 추가됩니다.</li>
+                <li>• 다시 입력을 시작하면 자동으로 업무 상태로 복귀합니다.</li>
+              </ul>
+            </div>
+            
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-2">
+              <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">macOS 권한 안내</h4>
+              <ul className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1">
+                <li>• <strong>접근성 권한:</strong> 시스템 환경설정 → 보안 및 개인 정보 보호 → 개인 정보 보호 → 접근성에서 Work Tracker 허용</li>
+                <li>• <strong>알림 권한:</strong> 시스템 환경설정 → 알림에서 Work Tracker 허용</li>
+                <li>• 권한이 허용되지 않으면 자동 휴식 감지가 제한적으로 작동할 수 있습니다.</li>
+                <li>• 앱 재시작 후 권한 설정이 적용됩니다.</li>
+              </ul>
             </div>
           </CardContent>
         </Card>

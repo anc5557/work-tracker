@@ -5,19 +5,23 @@ import { promisify } from 'util';
 import { ScreenshotService } from '../services/screenshot.service';
 import { DataService } from '../services/data.service';
 import { SettingsService } from '../services/settings.service';
-import type { WorkRecord, AppSettings } from '@/shared/types';
+import { AutoRestService } from '../services/auto-rest.service';
+import type { WorkRecord, AppSettings, AutoRestEvent, ActivityTimelineItem } from '@/shared/types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class IpcHandlers {
   private screenshotService: ScreenshotService;
   private dataService: DataService;
   private settingsService: SettingsService;
+  private autoRestService: AutoRestService;
 
   constructor(dataPath: string) {
     this.screenshotService = new ScreenshotService(dataPath);
     this.dataService = new DataService(dataPath);
     this.settingsService = new SettingsService(dataPath);
+    this.autoRestService = new AutoRestService();
     this.setupHandlers();
+    this.setupAutoRestEventHandlers();
   }
 
   private setupHandlers(): void {
@@ -57,13 +61,20 @@ export class IpcHandlers {
     // 업무 시작
     ipcMain.handle('start-work', async (_, data: { title: string; description?: string; tags?: string[] }) => {
       try {
+        const startTime = new Date().toISOString();
         const record: WorkRecord = {
           id: uuidv4(),
           title: data.title,
           description: data.description,
-          startTime: new Date().toISOString(),
+          startTime,
           tags: data.tags || [],
-          isActive: true
+          isActive: true,
+          timeline: [{
+            id: uuidv4(),
+            type: 'work',
+            timestamp: startTime,
+            description: '업무 시작'
+          }]
         };
 
         await this.dataService.saveWorkRecord(record);
@@ -102,6 +113,7 @@ export class IpcHandlers {
         const endTime = new Date();
         record.endTime = endTime.toISOString();
         record.isActive = false;
+        record.isPaused = false;
         record.duration = endTime.getTime() - new Date(record.startTime).getTime();
 
         await this.dataService.saveWorkRecord(record);
@@ -109,6 +121,114 @@ export class IpcHandlers {
         return { success: true, data: record };
       } catch (error) {
         console.error('Failed to stop work:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    // 업무 중지
+    ipcMain.handle('pause-work', async (_, data: { id: string }) => {
+      try {
+        // 기존 기록 찾기
+        const today = new Date().toISOString().split('T')[0];
+        const dayData = await this.dataService.getWorkRecords(today);
+        
+        if (!dayData) {
+          return { success: false, error: '오늘의 업무 기록을 찾을 수 없습니다.' };
+        }
+
+        const record = dayData.records.find(r => r.id === data.id);
+        if (!record) {
+          return { success: false, error: '해당 업무 기록을 찾을 수 없습니다.' };
+        }
+
+        if (!record.isActive || record.isPaused) {
+          return { success: false, error: '중지할 수 없는 상태입니다.' };
+        }
+
+        // 업무 중지 처리
+        const pauseTime = new Date();
+        record.isPaused = true;
+
+        // 타임라인에 중지 기록 추가
+        if (!record.timeline) {
+          record.timeline = [];
+        }
+
+        const pauseTimelineItem: ActivityTimelineItem = {
+          id: uuidv4(),
+          type: 'pause',
+          timestamp: pauseTime.toISOString(),
+          description: '업무 중지'
+        };
+
+        record.timeline.push(pauseTimelineItem);
+        
+        await this.dataService.saveWorkRecord(record);
+        this.sendToRenderer('work-record-updated', record);
+
+        return { success: true, data: record };
+      } catch (error) {
+        console.error('Failed to pause work:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    // 업무 재개
+    ipcMain.handle('resume-work', async (_, data: { id: string }) => {
+      try {
+        // 기존 기록 찾기
+        const today = new Date().toISOString().split('T')[0];
+        const dayData = await this.dataService.getWorkRecords(today);
+        
+        if (!dayData) {
+          return { success: false, error: '오늘의 업무 기록을 찾을 수 없습니다.' };
+        }
+
+        const record = dayData.records.find(r => r.id === data.id);
+        if (!record) {
+          return { success: false, error: '해당 업무 기록을 찾을 수 없습니다.' };
+        }
+
+        if (!record.isActive || !record.isPaused) {
+          return { success: false, error: '재개할 수 없는 상태입니다.' };
+        }
+
+        // 업무 재개 처리
+        const resumeTime = new Date();
+        record.isPaused = false;
+
+        // 타임라인에서 마지막 중지 기록 찾아서 지속 시간 계산
+        if (record.timeline) {
+          const lastPauseItem = record.timeline
+            .slice()
+            .reverse()
+            .find(item => item.type === 'pause' && !item.duration);
+          
+          if (lastPauseItem) {
+            lastPauseItem.duration = resumeTime.getTime() - new Date(lastPauseItem.timestamp).getTime();
+          }
+        }
+
+        // 타임라인에 재개 기록 추가
+        if (!record.timeline) {
+          record.timeline = [];
+        }
+
+        const resumeTimelineItem: ActivityTimelineItem = {
+          id: uuidv4(),
+          type: 'resume',
+          timestamp: resumeTime.toISOString(),
+          description: '업무 재개'
+        };
+
+        record.timeline.push(resumeTimelineItem);
+        
+        await this.dataService.saveWorkRecord(record);
+        this.sendToRenderer('work-record-updated', record);
+
+        return { success: true, data: record };
+      } catch (error) {
+        console.error('Failed to resume work:', error);
         return { success: false, error: (error as Error).message };
       }
     });
@@ -429,6 +549,11 @@ export class IpcHandlers {
       try {
         const success = await this.settingsService.saveSettings(settings);
         if (success) {
+          // 자동 휴식 설정이 포함된 경우 즉시 적용
+          if (settings.autoRestEnabled !== undefined && settings.autoRestIdleTime !== undefined) {
+            this.autoRestService.updateSettings(settings.autoRestEnabled, settings.autoRestIdleTime);
+          }
+          
           return { success: true, data: settings };
         } else {
           return { success: false, error: '설정 저장에 실패했습니다.' };
@@ -545,6 +670,49 @@ export class IpcHandlers {
       // TODO: 구현 필요
       return { success: false, error: 'Not implemented yet' };
     });
+
+    // 자동 휴식 관련 핸들러
+    ipcMain.handle('get-auto-rest-status', async () => {
+      try {
+        const status = this.autoRestService.getStatus();
+        return { success: true, data: status };
+      } catch (error) {
+        console.error('Failed to get auto rest status:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    ipcMain.handle('update-auto-rest-settings', async (_, data: { enabled: boolean; idleTime: number }) => {
+      try {
+        this.autoRestService.updateSettings(data.enabled, data.idleTime);
+        
+        // 설정 파일에도 저장
+        const currentSettings = await this.settingsService.loadSettings();
+        const updatedSettings = {
+          ...currentSettings,
+          autoRestEnabled: data.enabled,
+          autoRestIdleTime: data.idleTime
+        };
+        await this.settingsService.saveSettings(updatedSettings);
+
+        const status = this.autoRestService.getStatus();
+        return { success: true, data: status };
+      } catch (error) {
+        console.error('Failed to update auto rest settings:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    ipcMain.handle('reset-activity-timer', async () => {
+      try {
+        this.autoRestService.resetActivityTimer();
+        const status = this.autoRestService.getStatus();
+        return { success: true, data: status };
+      } catch (error) {
+        console.error('Failed to reset activity timer:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
   }
 
   /**
@@ -577,5 +745,107 @@ export class IpcHandlers {
       console.error('Failed to get active session:', error);
       return { success: false, error: (error as Error).message };
     }
+  }
+
+  /**
+   * 자동 휴식 이벤트 핸들러를 설정합니다.
+   */
+  private setupAutoRestEventHandlers(): void {
+    this.autoRestService.onEvent(async (event: AutoRestEvent) => {
+      try {
+        // 렌더러 프로세스에 이벤트 전송
+        this.sendToRenderer('auto-rest-event', event);
+
+        // 휴식 시작/종료 시 업무 기록에 자동으로 추가
+        await this.handleAutoRestWorkRecord(event);
+      } catch (error) {
+        console.error('Error handling auto rest event:', error);
+      }
+    });
+  }
+
+  /**
+   * 자동 휴식 이벤트에 따른 업무 기록을 처리합니다.
+   */
+  private async handleAutoRestWorkRecord(event: AutoRestEvent): Promise<void> {
+    try {
+      const activeSessionResult = await this.getActiveSession();
+      
+      if (!activeSessionResult.success || !activeSessionResult.data) {
+        // 진행 중인 세션이 없으면 휴식 기록하지 않음
+        return;
+      }
+
+      const activeSession = activeSessionResult.data;
+      
+      // 세션의 타임라인이 없으면 초기화
+      if (!activeSession.timeline) {
+        activeSession.timeline = [];
+      }
+
+      if (event.type === 'rest-started') {
+        // 휴식 시작을 타임라인에 추가
+        const restTimelineItem = {
+          id: uuidv4(),
+          type: 'rest' as const,
+          timestamp: event.timestamp,
+          description: '자동으로 감지된 휴식 시작'
+        };
+
+        activeSession.timeline.push(restTimelineItem);
+        await this.dataService.saveWorkRecord(activeSession);
+        this.sendToRenderer('work-record-updated', activeSession);
+        
+      } else if (event.type === 'rest-ended' && event.duration) {
+        // 마지막 휴식 항목에 지속 시간 추가
+        const lastRestItem = activeSession.timeline
+          .slice()
+          .reverse()
+          .find((item: ActivityTimelineItem) => item.type === 'rest' && !item.duration);
+        
+        if (lastRestItem) {
+          lastRestItem.duration = event.duration;
+        }
+
+        // 업무 재개를 타임라인에 추가
+        const resumeTimelineItem = {
+          id: uuidv4(),
+          type: 'resume' as const,
+          timestamp: event.timestamp,
+          description: `${Math.floor(event.duration / (1000 * 60))}분간 휴식 후 업무 재개`
+        };
+
+        activeSession.timeline.push(resumeTimelineItem);
+        await this.dataService.saveWorkRecord(activeSession);
+        this.sendToRenderer('work-record-updated', activeSession);
+      }
+    } catch (error) {
+      console.error('Failed to handle auto rest work record:', error);
+    }
+  }
+
+  /**
+   * 자동 휴식 서비스를 초기화합니다.
+   */
+  public async initializeAutoRest(): Promise<void> {
+    try {
+      // 저장된 설정 로드
+      const settings = await this.settingsService.loadSettings();
+      this.autoRestService.updateSettings(
+        settings.autoRestEnabled ?? true,
+        settings.autoRestIdleTime ?? 5
+      );
+      
+      console.log('Auto rest service initialized');
+    } catch (error) {
+      console.error('Failed to initialize auto rest service:', error);
+    }
+  }
+
+  /**
+   * 리소스를 정리합니다.
+   */
+  public destroy(): void {
+    this.autoRestService.destroy();
   }
 } 

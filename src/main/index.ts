@@ -30,7 +30,7 @@ class WorkTrackerApp {
       }
     });
 
-    app.whenReady().then(() => {
+    app.whenReady().then(async () => {
       this.setupContentSecurityPolicy();
       this.requestNotificationPermission();
       this.setupMacOSApp();
@@ -38,6 +38,9 @@ class WorkTrackerApp {
       this.createTray();
       this.createMenu();
       this.startTrayUpdater();
+      
+      // 자동 휴식 서비스 초기화
+      await this.ipcHandlers.initializeAutoRest();
     });
 
     // 앱 종료 시 정리
@@ -48,6 +51,9 @@ class WorkTrackerApp {
       if (this.trayUpdateInterval) {
         clearInterval(this.trayUpdateInterval);
       }
+      
+      // 자동 휴식 서비스 정리
+      this.ipcHandlers.destroy();
     });
   }
 

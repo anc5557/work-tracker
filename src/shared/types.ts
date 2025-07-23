@@ -1,3 +1,12 @@
+// 활동 타임라인 항목
+export interface ActivityTimelineItem {
+  id: string;
+  type: 'work' | 'rest' | 'resume' | 'pause'; // 업무, 휴식 시작, 업무 재개, 업무 중지
+  timestamp: string; // ISO date string
+  duration?: number; // 해당 활동의 지속 시간 (밀리초, rest일 때만 사용)
+  description?: string; // 활동 설명
+}
+
 export interface WorkRecord {
   id: string;
   title: string;
@@ -7,7 +16,9 @@ export interface WorkRecord {
   screenshotPath?: string;
   tags: string[];
   isActive: boolean;
+  isPaused?: boolean; // 중지 상태 여부
   duration?: number; // milliseconds
+  timeline?: ActivityTimelineItem[]; // 활동 타임라인
 }
 
 export interface DayWorkSummary {
@@ -33,6 +44,9 @@ export interface AppSettings {
   maxScreenshots: number; // 세션당 최대 스크린샷 수 (기본: 100)
   screenshotQuality: 'high' | 'medium' | 'low'; // 스크린샷 품질
   recentTagsLimit: number; // 최근 태그 기억 개수 (기본: 10, 최소: 3, 최대: 50)
+  // 자동 휴식 감지 설정
+  autoRestEnabled: boolean; // 자동 휴식 감지 활성화 여부 (기본: true)
+  autoRestIdleTime: number; // 휴식 상태로 전환되는 대기 시간(분) (기본: 5)
 }
 
 // 자동 캡처 상태 정보
@@ -50,6 +64,26 @@ export interface ScreenshotData {
   filePath: string;
   workRecordId?: string;
   isAutoCapture?: boolean; // 자동 캡처인지 수동 캡처인지 구분
+}
+
+// 자동 휴식 감지 상태 정보
+export interface AutoRestStatus {
+  enabled: boolean; // 자동 휴식 감지 활성화 여부
+  isResting: boolean; // 현재 휴식 중인지 여부
+  idleTime: number; // 설정된 대기 시간 (분)
+  lastActivityTime?: string; // 마지막 활동 시간 (ISO date string)
+  restStartTime?: string; // 휴식 시작 시간 (ISO date string)
+  timeUntilRest?: number; // 휴식까지 남은 시간 (초)
+}
+
+// 자동 휴식 이벤트 타입
+export type AutoRestEventType = 'rest-started' | 'rest-ended' | 'activity-detected';
+
+// 자동 휴식 이벤트 정보
+export interface AutoRestEvent {
+  type: AutoRestEventType;
+  timestamp: string; // ISO date string
+  duration?: number; // 휴식 기간 (밀리초, rest-ended일 때만)
 }
 
 // IPC 통신용 타입
@@ -79,6 +113,9 @@ export type MainToRendererEvents = {
   };
   'stop-current-session': void;
   'start-new-session-from-tray': void;
+  // 자동 휴식 관련 이벤트
+  'auto-rest-status-changed': AutoRestStatus;
+  'auto-rest-event': AutoRestEvent;
 };
 
 // Renderer -> Main 요청
@@ -86,6 +123,8 @@ export type RendererToMainRequests = {
   'capture-screenshot': { sessionId?: string };
   'start-work': { title: string; description?: string; tags?: string[] };
   'stop-work': { id: string };
+  'pause-work': { id: string }; // 업무 중지
+  'resume-work': { id: string }; // 업무 재개
   'save-work-record': WorkRecord;
   'delete-work-record': { id: string };
   'get-work-records': { date?: string };
@@ -116,6 +155,10 @@ export type RendererToMainRequests = {
     startDate?: string; 
     endDate?: string; 
   };
+  // 자동 휴식 관련 요청
+  'get-auto-rest-status': void;
+  'update-auto-rest-settings': { enabled: boolean; idleTime: number };
+  'reset-activity-timer': void; // 활동 타이머 리셋 (수동으로 활동 상태로 변경)
 };
 
 // 태그별 레포트 관련 타입

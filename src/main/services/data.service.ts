@@ -39,6 +39,33 @@ export class DataService {
   }
 
   /**
+   * 중지된 시간을 제외한 실제 작업 시간을 계산합니다.
+   */
+  private calculateActualWorkDuration(record: WorkRecord): number {
+    if (!record.duration || record.duration <= 0) {
+      return 0;
+    }
+
+    // 타임라인이 없으면 전체 duration 반환
+    if (!record.timeline || record.timeline.length === 0) {
+      return record.duration;
+    }
+
+    // 중지된 시간 총합 계산
+    let totalPausedTime = 0;
+    
+    for (const item of record.timeline) {
+      if (item.type === 'pause' && item.duration) {
+        totalPausedTime += item.duration;
+      }
+    }
+
+    // 실제 작업 시간 = 전체 시간 - 중지된 시간
+    const actualWorkTime = record.duration - totalPausedTime;
+    return Math.max(0, actualWorkTime); // 음수 방지
+  }
+
+  /**
    * 업무 기록을 저장합니다.
    */
   async saveWorkRecord(record: WorkRecord): Promise<void> {
@@ -71,7 +98,7 @@ export class DataService {
       // 통계 업데이트
       dayData.totalRecords = dayData.records.length;
       dayData.totalDuration = dayData.records.reduce((total, r) => {
-        return total + (r.duration || 0);
+        return total + this.calculateActualWorkDuration(r);
       }, 0);
 
       // 시간순 정렬
@@ -177,7 +204,7 @@ export class DataService {
       // 통계 업데이트
       dayData.totalRecords = dayData.records.length;
       dayData.totalDuration = dayData.records.reduce((total, r) => {
-        return total + (r.duration || 0);
+        return total + this.calculateActualWorkDuration(r);
       }, 0);
 
       // 파일 저장
@@ -422,7 +449,7 @@ export class DataService {
 
       // 기본 통계 계산
       const totalSessions = completedSessions.length;
-      const totalDurationMs = completedSessions.reduce((sum, session) => sum + (session.duration || 0), 0);
+      const totalDurationMs = completedSessions.reduce((sum, session) => sum + this.calculateActualWorkDuration(session), 0);
       const totalHours = totalDurationMs / (1000 * 60 * 60); // 밀리초를 시간으로 변환
       
       const averageSessionLength = totalSessions > 0 ? totalHours / totalSessions : 0;
@@ -434,7 +461,7 @@ export class DataService {
       for (const session of completedSessions) {
         const sessionDate = new Date(session.startTime);
         const dayOfWeek = sessionDate.getDay();
-        const sessionHours = (session.duration || 0) / (1000 * 60 * 60);
+        const sessionHours = this.calculateActualWorkDuration(session) / (1000 * 60 * 60);
         
         dayOfWeekData[dayOfWeek] = (dayOfWeekData[dayOfWeek] || 0) + sessionHours;
       }
@@ -535,7 +562,7 @@ export class DataService {
           
           for (const record of dayData.records) {
             if (record.duration && record.duration > 0) {
-              totalDuration += record.duration;
+              totalDuration += this.calculateActualWorkDuration(record);
               totalSessions++;
             }
           }
@@ -673,7 +700,7 @@ export class DataService {
       }
 
       // 전체 통계 계산
-      const totalDuration = allRecords.reduce((sum, record) => sum + (record.duration || 0), 0);
+      const totalDuration = allRecords.reduce((sum, record) => sum + this.calculateActualWorkDuration(record), 0);
       const totalRecords = allRecords.length;
 
       // 태그별 데이터 집계
@@ -693,7 +720,7 @@ export class DataService {
             if (!tagMap[tag].records.some(r => r.id === record.id)) {
               tagMap[tag].records.push(record);
             }
-            tagMap[tag].totalDuration += (record.duration || 0);
+            tagMap[tag].totalDuration += this.calculateActualWorkDuration(record);
           }
         }
       }
@@ -701,7 +728,7 @@ export class DataService {
       // 태그가 없는 레코드 처리
       const untaggedRecords = allRecords.filter(record => !record.tags || record.tags.length === 0);
       if (untaggedRecords.length > 0) {
-        const untaggedDuration = untaggedRecords.reduce((sum, record) => sum + (record.duration || 0), 0);
+        const untaggedDuration = untaggedRecords.reduce((sum, record) => sum + this.calculateActualWorkDuration(record), 0);
         tagMap['(태그 없음)'] = {
           records: untaggedRecords,
           totalDuration: untaggedDuration

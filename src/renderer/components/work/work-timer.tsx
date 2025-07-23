@@ -5,14 +5,15 @@ import { Badge } from '../ui/badge';
 import { TaskInputDialog } from './task-input-dialog';
 import { useToast } from '../../hooks/use-toast';
 import { formatDuration } from '../../lib/utils';
-import { Play, Square, Camera, Clock, Zap, Target, Timer } from 'lucide-react';
+import { Play, Square, Camera, Clock, Zap, Target, Timer, Coffee, Activity, Pause } from 'lucide-react';
 import { useSession } from '../../contexts/session-context';
-import type { WorkRecord, AppSettings, AutoCaptureStatus } from '../../../shared/types';
+import type { WorkRecord, AppSettings, AutoCaptureStatus, AutoRestStatus, AutoRestEvent } from '../../../shared/types';
 
 export function WorkTimer() {
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [autoCaptureStatus, setAutoCaptureStatus] = useState<AutoCaptureStatus | null>(null);
+  const [autoRestStatus, setAutoRestStatus] = useState<AutoRestStatus | null>(null);
   const { toast } = useToast();
   const { isWorking, currentRecord, elapsedTime, startSession, stopSession, checkSession } = useSession();
 
@@ -20,9 +21,10 @@ export function WorkTimer() {
   useEffect(() => {
     loadSettings();
     loadAutoCaptureStatus();
+    loadAutoRestStatus();
   }, []);
 
-  // 스크린샷 캡처 이벤트 리스너 추가
+  // 이벤트 리스너 추가
   useEffect(() => {
     const handleScreenshotCaptured = () => {
       // 스크린샷이 캡처되면 자동 캡처 상태 새로고침
@@ -33,14 +35,45 @@ export function WorkTimer() {
       setAutoCaptureStatus(status);
     };
 
+    const handleAutoRestStatusChanged = (status: AutoRestStatus) => {
+      setAutoRestStatus(status);
+      // 설정도 함께 새로고침
+      loadSettings();
+    };
+
+    const handleAutoRestEvent = (event: AutoRestEvent) => {
+      // 자동 휴식 이벤트에 대한 토스트 알림 표시
+      if (event.type === 'rest-started') {
+        toast({
+          title: "휴식 시작",
+          description: "활동이 감지되지 않아 휴식 상태로 전환되었습니다.",
+          variant: "default",
+        });
+      } else if (event.type === 'rest-ended') {
+        const durationMinutes = event.duration ? Math.floor(event.duration / (1000 * 60)) : 0;
+        toast({
+          title: "업무 재개",
+          description: `${durationMinutes}분간 휴식 후 업무를 재개합니다.`,
+          variant: "default",
+        });
+      }
+      
+      // 상태 새로고침
+      loadAutoRestStatus();
+    };
+
     window.electronAPI.on('screenshot-captured', handleScreenshotCaptured);
     window.electronAPI.on('auto-capture-status-changed', handleAutoCaptureStatusChanged);
+    window.electronAPI.on('auto-rest-status-changed', handleAutoRestStatusChanged);
+    window.electronAPI.on('auto-rest-event', handleAutoRestEvent);
 
     return () => {
       window.electronAPI.removeAllListeners('screenshot-captured');
       window.electronAPI.removeAllListeners('auto-capture-status-changed');
+      window.electronAPI.removeAllListeners('auto-rest-status-changed');
+      window.electronAPI.removeAllListeners('auto-rest-event');
     };
-  }, []);
+  }, [toast]);
 
   const loadSettings = async () => {
     try {
@@ -61,6 +94,17 @@ export function WorkTimer() {
       }
     } catch (error) {
       console.error('Failed to load auto capture status:', error);
+    }
+  };
+
+  const loadAutoRestStatus = async () => {
+    try {
+      const result = await window.electronAPI.invoke('get-auto-rest-status');
+      if (result.success) {
+        setAutoRestStatus(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load auto rest status:', error);
     }
   };
 
@@ -99,6 +143,22 @@ export function WorkTimer() {
       }
     } catch (error) {
       console.error('Failed to stop auto capture:', error);
+    }
+  };
+
+  // 활동 타이머 리셋 (휴식 상태에서 수동으로 업무 재개)
+  const resetActivityTimer = async () => {
+    try {
+      const result = await window.electronAPI.invoke('reset-activity-timer');
+      if (result.success) {
+        setAutoRestStatus(result.data);
+        toast({
+          title: "활동 재개",
+          description: "활동 타이머가 리셋되었습니다.",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to reset activity timer:', error);
     }
   };
 
@@ -226,6 +286,76 @@ export function WorkTimer() {
     }
   };
 
+  const handlePauseWork = async () => {
+    if (!currentRecord) return;
+
+    try {
+      // 자동 캡처 정지 (중지 중에는 캡처하지 않음)
+      await stopAutoCapture();
+      
+      const result = await window.electronAPI.invoke('pause-work', { id: currentRecord.id });
+      
+      if (result.success) {
+        // 세션 컨텍스트 업데이트 (중지 상태로)
+        await checkSession();
+        
+        toast({
+          title: "업무 중지",
+          description: "업무가 중지되었습니다. 언제든지 재개할 수 있습니다.",
+        });
+      } else {
+        toast({
+          title: "오류",
+          description: result.error || "업무 중지에 실패했습니다.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to pause work:', error);
+      toast({
+        title: "오류",
+        description: "업무 중지에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResumeWork = async () => {
+    if (!currentRecord) return;
+
+    try {
+      const result = await window.electronAPI.invoke('resume-work', { id: currentRecord.id });
+      
+      if (result.success) {
+        // 세션 컨텍스트 업데이트 (재개 상태로)
+        await checkSession();
+        
+        // 자동 캡처 재시작
+        if (settings?.autoCapture) {
+          await startAutoCapture(currentRecord.id);
+        }
+        
+        toast({
+          title: "업무 재개",
+          description: "업무를 재개했습니다.",
+        });
+      } else {
+        toast({
+          title: "오류",
+          description: result.error || "업무 재개에 실패했습니다.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to resume work:', error);
+      toast({
+        title: "오류",
+        description: "업무 재개에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCaptureScreenshot = async () => {
     try {
       // 현재 세션이 활성화되어 있을 때만 세션 ID 전달
@@ -272,11 +402,18 @@ export function WorkTimer() {
               </div>
             </div>
             <CardTitle className="text-2xl font-semibold text-foreground">
-              {isWorking ? '작업 진행 중' : '새로운 업무 시작'}
+              {isWorking 
+                ? currentRecord?.isPaused 
+                  ? '작업 중지됨' 
+                  : '작업 진행 중' 
+                : '새로운 업무 시작'
+              }
             </CardTitle>
             <CardDescription className="text-muted-foreground">
               {isWorking 
-                ? '집중해서 작업을 진행하고 있습니다' 
+                ? currentRecord?.isPaused
+                  ? '작업이 중지되었습니다. 언제든지 재개할 수 있습니다'
+                  : '집중해서 작업을 진행하고 있습니다' 
                 : '생산적인 하루를 시작해보세요'
               }
             </CardDescription>
@@ -331,8 +468,17 @@ export function WorkTimer() {
                   <Play className="w-5 h-5 mr-2" />
                   업무 시작하기
                 </Button>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
+              ) : currentRecord?.isPaused ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    onClick={handleResumeWork}
+                    variant="default"
+                    size="lg"
+                    className="py-4 font-medium"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    재개
+                  </Button>
                   <Button 
                     onClick={handleStopWork}
                     variant="destructive"
@@ -340,7 +486,7 @@ export function WorkTimer() {
                     className="py-4 font-medium"
                   >
                     <Square className="w-4 h-4 mr-2" />
-                    작업 완료
+                    완료
                   </Button>
                   <Button 
                     onClick={handleCaptureScreenshot}
@@ -349,7 +495,37 @@ export function WorkTimer() {
                     className="py-4 font-medium"
                   >
                     <Camera className="w-4 h-4 mr-2" />
-                    스크린샷
+                    캡처
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    onClick={handlePauseWork}
+                    variant="outline"
+                    size="lg"
+                    className="py-4 font-medium"
+                  >
+                    <Pause className="w-4 h-4 mr-2" />
+                    중지
+                  </Button>
+                  <Button 
+                    onClick={handleStopWork}
+                    variant="destructive"
+                    size="lg"
+                    className="py-4 font-medium"
+                  >
+                    <Square className="w-4 h-4 mr-2" />
+                    완료
+                  </Button>
+                  <Button 
+                    onClick={handleCaptureScreenshot}
+                    variant="outline"
+                    size="lg"
+                    className="py-4 font-medium"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    캡처
                   </Button>
                 </div>
               )}
@@ -359,8 +535,17 @@ export function WorkTimer() {
             {isWorking && (
               <div className="space-y-2">
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span>작업 진행 중</span>
+                  {currentRecord?.isPaused ? (
+                    <>
+                      <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                      <span>작업 중지됨</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span>작업 진행 중</span>
+                    </>
+                  )}
                 </div>
                 
                 {/* 자동 캡처 상태 */}
@@ -383,6 +568,39 @@ export function WorkTimer() {
                       <>
                         <Timer className="w-3 h-3 text-muted-foreground" />
                         <span>자동 캡처 비활성화</span>
+                      </>
+                    )}
+                  </div>
+                )}
+                
+                {/* 자동 휴식 상태 */}
+                {autoRestStatus && settings && (
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    {autoRestStatus.enabled ? (
+                      autoRestStatus.isResting ? (
+                        <>
+                          <Coffee className="w-3 h-3 text-orange-400 animate-pulse" />
+                          <span className="text-orange-400">휴식 중</span>
+                          <Button
+                            onClick={resetActivityTimer}
+                            size="sm"
+                            variant="outline"
+                            className="h-5 px-2 text-xs border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-white"
+                          >
+                            <Activity className="w-2 h-2 mr-1" />
+                            활동 재개
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Activity className="w-3 h-3 text-green-400" />
+                          <span>자동 휴식 감지: {settings.autoRestIdleTime}분 대기</span>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <Activity className="w-3 h-3 text-muted-foreground" />
+                        <span>자동 휴식 감지 비활성화</span>
                       </>
                     )}
                   </div>
