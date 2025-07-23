@@ -217,14 +217,52 @@ class WorkTrackerApp {
       const sessionMenuItems: Electron.MenuItemConstructorOptions[] = [];
       
       if (isSessionActive) {
-        // 활성 세션이 있는 경우 - 세션 중지 및 새 세션 시작 버튼 추가
-        sessionMenuItems.push(
-          {
-            label: '현재 세션 중지',
-            click: () => {
-              this.sendToRenderer('stop-current-session');
+        // 활성 세션이 있는 경우 - 일시정지 상태에 따라 다른 메뉴 제공
+        const activeSession = result.data;
+        const isPaused = activeSession.isPaused;
+        
+        if (isPaused) {
+          // 일시정지 상태 - 재개 옵션 제공
+          sessionMenuItems.push(
+            {
+              label: '업무 재개',
+              click: () => {
+                this.sendToRenderer('resume-current-session');
+              }
+            },
+            {
+              label: '현재 세션 중지',
+              click: () => {
+                this.sendToRenderer('stop-current-session');
+              }
+            },
+            {
+              type: 'separator'
             }
-          },
+          );
+        } else {
+          // 진행 중 상태 - 일시정지 및 중지 옵션 제공
+          sessionMenuItems.push(
+            {
+              label: '일시정지',
+              click: () => {
+                this.sendToRenderer('pause-current-session');
+              }
+            },
+            {
+              label: '현재 세션 중지',
+              click: () => {
+                this.sendToRenderer('stop-current-session');
+              }
+            },
+            {
+              type: 'separator'
+            }
+          );
+        }
+        
+        // 새 세션 시작 옵션
+        sessionMenuItems.push(
           {
             label: '새 세션 시작',
             click: () => {
@@ -250,8 +288,9 @@ class WorkTrackerApp {
         );
       }
 
-      // 스크린샷 캡처 메뉴 항목 (세션이 진행 중일 때만 표시)
-      const screenshotMenuItem: Electron.MenuItemConstructorOptions[] = isSessionActive ? [
+      // 스크린샷 캡처 메뉴 항목 (세션이 진행 중이고 일시정지가 아닐 때만 표시)
+      const screenshotMenuItem: Electron.MenuItemConstructorOptions[] = 
+        (isSessionActive && result.data && !result.data.isPaused) ? [
         {
           label: '스크린샷 캡처',
           click: () => {

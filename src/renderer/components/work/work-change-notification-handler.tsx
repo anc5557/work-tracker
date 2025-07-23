@@ -15,7 +15,9 @@ export function WorkChangeNotificationHandler() {
     currentRecord, 
     elapsedTime,
     startSession,
-    endCurrentSessionAndStartNew, 
+    pauseSession,
+    resumeSession,
+    endCurrentSessionAndStartNew,
     endCurrentSession 
   } = useSession();
   const { toast } = useToast();
@@ -50,6 +52,72 @@ export function WorkChangeNotificationHandler() {
       }
     };
 
+    // 트레이에서 현재 세션 일시정지 요청
+    const handlePauseCurrentSession = async () => {
+      console.log('Pause current session requested from tray');
+      if (!currentRecord) {
+        toast({
+          title: "오류",
+          description: "일시정지할 세션이 없습니다.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        const result = await window.electronAPI.invoke('pause-work', { id: currentRecord.id });
+        if (result.success) {
+          pauseSession(result.data);
+          toast({
+            title: "세션 일시정지",
+            description: "현재 작업이 일시정지되었습니다.",
+          });
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error('Error pausing session from tray:', error);
+        toast({
+          title: "오류",
+          description: "세션 일시정지에 실패했습니다.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    // 트레이에서 현재 세션 재개 요청
+    const handleResumeCurrentSession = async () => {
+      console.log('Resume current session requested from tray');
+      if (!currentRecord) {
+        toast({
+          title: "오류",
+          description: "재개할 세션이 없습니다.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        const result = await window.electronAPI.invoke('resume-work', { id: currentRecord.id });
+        if (result.success) {
+          resumeSession(result.data);
+          toast({
+            title: "세션 재개",
+            description: "작업을 재개했습니다.",
+          });
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error('Error resuming session from tray:', error);
+        toast({
+          title: "오류",
+          description: "세션 재개에 실패했습니다.",
+          variant: "destructive",
+        });
+      }
+    };
+
     // 트레이에서 새 세션 시작 요청
     const handleStartNewSessionFromTray = () => {
       console.log('Start new session requested from tray');
@@ -59,15 +127,19 @@ export function WorkChangeNotificationHandler() {
     // 이벤트 리스너 등록
     window.electronAPI.on('notification-clicked', handleNotificationClick);
     window.electronAPI.on('stop-current-session', handleStopCurrentSession);
+    window.electronAPI.on('pause-current-session', handlePauseCurrentSession);
+    window.electronAPI.on('resume-current-session', handleResumeCurrentSession);
     window.electronAPI.on('start-new-session-from-tray', handleStartNewSessionFromTray);
 
     // 컴포넌트 언마운트 시 리스너 정리
     return () => {
       window.electronAPI.removeAllListeners('notification-clicked');
       window.electronAPI.removeAllListeners('stop-current-session');
+      window.electronAPI.removeAllListeners('pause-current-session');
+      window.electronAPI.removeAllListeners('resume-current-session');
       window.electronAPI.removeAllListeners('start-new-session-from-tray');
     };
-  }, [endCurrentSession, toast]);
+  }, [endCurrentSession, pauseSession, resumeSession, currentRecord, toast]);
 
   // 계속 진행 - 아무것도 하지 않음
   const handleContinue = () => {
