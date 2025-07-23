@@ -783,7 +783,8 @@ export class IpcHandlers {
     // 세션 상태 확인 콜백 설정
     this.autoRestService.setSessionStateCallback(async () => {
       const result = await this.getActiveSession();
-      return result.success && result.data && result.data.isActive;
+      // 세션이 존재하고, 활성화되어 있으며, 중지 상태가 아닐 때만 true 반환
+      return result.success && result.data && result.data.isActive && !result.data.isPaused;
     });
 
     this.autoRestService.onEvent(async (event: AutoRestEvent) => {
