@@ -806,16 +806,14 @@ export function SessionDetails() {
                         <div key={item.id} className={`flex items-center gap-3 p-4 rounded-xl border shadow-sm ${
                           item.type === 'work' 
                             ? 'bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20'
-                            : item.type === 'pause'
-                            ? 'bg-gradient-to-r from-orange-50 to-orange-25 border-orange-200'
-                            : item.type === 'rest'
+                            : item.type === 'pause' || item.type === 'rest'
                             ? 'bg-gradient-to-r from-orange-100/50 to-orange-50/30 border-orange-200/50 dark:from-orange-900/20 dark:to-orange-800/10 dark:border-orange-700/30'
                             : 'bg-gradient-to-r from-green-100/50 to-green-50/30 border-green-200/50 dark:from-green-900/20 dark:to-green-800/10 dark:border-green-700/30'
                         }`}>
                           <div className={`w-3 h-3 rounded-full shadow-sm ${
                             item.type === 'work' 
                               ? 'bg-primary'
-                              : item.type === 'rest'
+                              : item.type === 'rest' || item.type === 'pause'
                               ? 'bg-orange-400'
                               : 'bg-green-400'
                           }`}></div>
@@ -823,7 +821,7 @@ export function SessionDetails() {
                             <p className={`font-medium flex items-center gap-2 ${
                               item.type === 'work' 
                                 ? 'text-primary'
-                                : item.type === 'rest'
+                                : item.type === 'rest' || item.type === 'pause'
                                 ? 'text-orange-600 dark:text-orange-400'
                                 : 'text-green-600 dark:text-green-400'
                             }`}>
