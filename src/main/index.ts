@@ -8,11 +8,30 @@ class WorkTrackerApp {
   private ipcHandlers: IpcHandlers;
   private dataPath: string;
   private trayUpdateInterval: NodeJS.Timeout | null = null;
+  private static instance: WorkTrackerApp | null = null;
 
   constructor() {
     this.dataPath = join(app.getPath('userData'), 'work-tracker-data');
     this.ipcHandlers = new IpcHandlers(this.dataPath);
+    
+    // 트레이 업데이트 콜백 설정
+    this.ipcHandlers.setTrayUpdateCallback(() => {
+      this.updateTrayTitle();
+    });
+    
+    WorkTrackerApp.instance = this;
     this.setupApp();
+  }
+
+  public static getInstance(): WorkTrackerApp | null {
+    return WorkTrackerApp.instance;
+  }
+
+  /**
+   * 외부에서 트레이 타이틀을 즉시 업데이트할 수 있는 메서드
+   */
+  public forceUpdateTrayTitle(): void {
+    this.updateTrayTitle();
   }
 
   private setupApp(): void {
@@ -475,11 +494,11 @@ class WorkTrackerApp {
       
       if (result.success && result.data && result.data.isActive) {
         const activeSession = result.data;
-        const now = new Date();
-        const startTime = new Date(activeSession.startTime);
-        const elapsedMs = now.getTime() - startTime.getTime();
         
-        const elapsedTime = this.formatElapsedTime(elapsedMs);
+        // 중지된 시간을 제외한 실제 업무 시간 계산
+        const actualWorkTime = this.calculateActualWorkTime(activeSession);
+        
+        const elapsedTime = this.formatElapsedTime(actualWorkTime);
         this.tray.setTitle(`${elapsedTime}`);
         this.tray.setToolTip(`Work Tracker - ${activeSession.title} (${elapsedTime})`);
       } else {
@@ -489,6 +508,59 @@ class WorkTrackerApp {
     } catch (error) {
       console.error('Failed to update tray title:', error);
     }
+  }
+
+  /**
+   * 중지된 시간을 제외한 실제 업무 시간을 계산합니다.
+   */
+  private calculateActualWorkTime(record: any): number {
+    if (!record) return 0;
+
+    const now = new Date().getTime();
+    const startTime = new Date(record.startTime).getTime();
+    
+    if (!record.timeline || record.timeline.length === 0) {
+      // timeline이 없으면 기본 계산
+      if (record.isPaused) {
+        // 일시정지 상태이지만 timeline이 없으면 정확한 계산 불가
+        // 안전하게 0을 반환 (실제로는 pause 시 timeline이 생성됨)
+        return 0;
+      } else {
+        // 진행 중이면 시작부터 현재까지
+        return now - startTime;
+      }
+    }
+
+    // timeline을 활용하여 실제 업무 시간 계산
+    let totalWorkingTime = 0;
+    let lastWorkTime = startTime;
+    let currentlyWorking = true; // 시작할 때는 업무 중
+
+    for (const item of record.timeline) {
+      const itemTime = new Date(item.timestamp).getTime();
+      
+      if (item.type === 'pause' || item.type === 'rest') {
+        // 중지/휴식 시작: 현재까지의 업무 시간을 누적
+        if (currentlyWorking) {
+          totalWorkingTime += itemTime - lastWorkTime;
+          currentlyWorking = false;
+        }
+      } else if (item.type === 'resume') {
+        // 재개: 재개 시점을 기록
+        if (!currentlyWorking) {
+          lastWorkTime = itemTime;
+          currentlyWorking = true;
+        }
+      }
+    }
+
+    // 현재 상태에 따라 마지막 구간 처리
+    if (currentlyWorking && !record.isPaused) {
+      // 현재 업무 중이고 일시정지가 아니면 현재 시간까지 누적
+      totalWorkingTime += now - lastWorkTime;
+    }
+
+    return totalWorkingTime;
   }
 
   /**

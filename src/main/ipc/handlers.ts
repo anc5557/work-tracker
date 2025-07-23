@@ -14,6 +14,7 @@ export class IpcHandlers {
   private dataService: DataService;
   private settingsService: SettingsService;
   private autoRestService: AutoRestService;
+  private trayUpdateCallback?: () => void;
 
   constructor(dataPath: string) {
     this.screenshotService = new ScreenshotService(dataPath);
@@ -22,6 +23,13 @@ export class IpcHandlers {
     this.autoRestService = new AutoRestService();
     this.setupHandlers();
     this.setupAutoRestEventHandlers();
+  }
+
+  /**
+   * 트레이 업데이트 콜백을 설정합니다.
+   */
+  public setTrayUpdateCallback(callback: () => void): void {
+    this.trayUpdateCallback = callback;
   }
 
   private setupHandlers(): void {
@@ -86,6 +94,9 @@ export class IpcHandlers {
           await this.dataService.saveWorkRecord(record); // 스크린샷 경로와 함께 다시 저장
         }
 
+        // 트레이 타이틀 즉시 업데이트
+        this.updateTrayTitle();
+
         return { success: true, data: record };
       } catch (error) {
         console.error('Failed to start work:', error);
@@ -117,6 +128,9 @@ export class IpcHandlers {
         record.duration = endTime.getTime() - new Date(record.startTime).getTime();
 
         await this.dataService.saveWorkRecord(record);
+
+        // 트레이 타이틀 즉시 업데이트
+        this.updateTrayTitle();
 
         return { success: true, data: record };
       } catch (error) {
@@ -165,6 +179,9 @@ export class IpcHandlers {
         
         await this.dataService.saveWorkRecord(record);
         this.sendToRenderer('work-record-updated', record);
+
+        // 트레이 타이틀 즉시 업데이트
+        this.updateTrayTitle();
 
         return { success: true, data: record };
       } catch (error) {
@@ -225,6 +242,9 @@ export class IpcHandlers {
         
         await this.dataService.saveWorkRecord(record);
         this.sendToRenderer('work-record-updated', record);
+
+        // 트레이 타이틀 즉시 업데이트
+        this.updateTrayTitle();
 
         return { success: true, data: record };
       } catch (error) {
@@ -744,6 +764,15 @@ export class IpcHandlers {
     } catch (error) {
       console.error('Failed to get active session:', error);
       return { success: false, error: (error as Error).message };
+    }
+  }
+
+  /**
+   * 트레이 타이틀을 업데이트합니다.
+   */
+  public updateTrayTitle(): void {
+    if (this.trayUpdateCallback) {
+      this.trayUpdateCallback();
     }
   }
 
