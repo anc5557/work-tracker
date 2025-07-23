@@ -6,6 +6,7 @@ interface SessionContextType {
   isWorking: boolean;
   currentRecord: WorkRecord | null;
   elapsedTime: number;
+  lastEndedSessionId: string | null;
   startSession: (record: WorkRecord) => void;
   stopSession: () => void;
   pauseSession: (record: WorkRecord) => void;
@@ -14,6 +15,7 @@ interface SessionContextType {
   checkSession: () => Promise<void>;
   endCurrentSessionAndStartNew: (newRecord: WorkRecord) => Promise<void>;
   endCurrentSession: () => Promise<void>;
+  clearLastEndedSessionId: () => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -26,6 +28,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
   const [isWorking, setIsWorking] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<WorkRecord | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [lastEndedSessionId, setLastEndedSessionId] = useState<string | null>(null);
   const { toast } = useToast();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -460,6 +463,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
         
         if (stopResult.success) {
           stopSession();
+          setLastEndedSessionId(sessionToStop.id); // 종료된 세션 ID 저장
           
           toast({
             title: "작업 종료",
@@ -485,10 +489,15 @@ export function SessionProvider({ children }: SessionProviderProps) {
     }
   }, [currentRecord, isWorking, stopSession, toast]);
 
+  const clearLastEndedSessionId = useCallback(() => {
+    setLastEndedSessionId(null);
+  }, []);
+
   const value: SessionContextType = {
     isWorking,
     currentRecord,
     elapsedTime,
+    lastEndedSessionId,
     startSession,
     stopSession,
     pauseSession,
@@ -496,7 +505,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
     restoreSession,
     checkSession,
     endCurrentSessionAndStartNew,
-    endCurrentSession
+    endCurrentSession,
+    clearLastEndedSessionId
   };
 
   return (
