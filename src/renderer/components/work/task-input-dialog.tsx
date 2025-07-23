@@ -37,7 +37,7 @@ export function TaskInputDialog({
 
   const loadRecentTags = async () => {
     try {
-      const result = await window.electronAPI.invoke('get-recent-tags', { limit: 5 });
+      const result = await window.electronAPI.invoke('get-recent-tags');
       if (result.success) {
         setRecentTags(result.data || []);
       }

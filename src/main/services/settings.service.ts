@@ -17,7 +17,8 @@ export class SettingsService {
       storagePath: dataPath,
       theme: 'dark',
       maxScreenshots: 100,
-      screenshotQuality: 'high'
+      screenshotQuality: 'high',
+      recentTagsLimit: 10 // 기본 10개
     };
     this.ensureDirectoryExists();
   }
@@ -114,6 +115,11 @@ export class SettingsService {
     // 저장 경로 검증 (빈 문자열이면 기본 경로 사용)
     if (!validated.storagePath || validated.storagePath.trim() === '') {
       validated.storagePath = this.dataPath;
+    }
+
+    // 최근 태그 개수 검증 (3-50 범위)
+    if (validated.recentTagsLimit < 3 || validated.recentTagsLimit > 50) {
+      validated.recentTagsLimit = 10; // 기본값으로 설정
     }
 
     return validated;

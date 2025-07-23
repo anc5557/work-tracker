@@ -32,6 +32,7 @@ export interface AppSettings {
   theme: 'light' | 'dark'; // 테마
   maxScreenshots: number; // 세션당 최대 스크린샷 수 (기본: 100)
   screenshotQuality: 'high' | 'medium' | 'low'; // 스크린샷 품질
+  recentTagsLimit: number; // 최근 태그 기억 개수 (기본: 10, 최소: 3, 최대: 50)
 }
 
 // 자동 캡처 상태 정보

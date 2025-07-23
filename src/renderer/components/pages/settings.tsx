@@ -11,6 +11,7 @@ export function Settings() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
@@ -46,11 +47,55 @@ export function Settings() {
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     if (settings) {
       setSettings({ ...settings, [key]: value });
+      
+      // 입력값 변경 시 해당 필드의 에러 제거
+      if (validationErrors[key]) {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[key];
+          return newErrors;
+        });
+      }
     }
+  };
+
+  const validateSettings = (settings: AppSettings): { [key: string]: string } => {
+    const errors: { [key: string]: string } = {};
+
+    // 최근 태그 개수 유효성 검증
+    if (settings.recentTagsLimit < 3 || settings.recentTagsLimit > 50) {
+      errors.recentTagsLimit = '최근 태그 개수는 3~50 사이의 값이어야 합니다.';
+    }
+
+    // 캡처 간격 유효성 검증
+    const validIntervals = [1, 5, 10, 15, 30];
+    if (!validIntervals.includes(settings.captureInterval)) {
+      errors.captureInterval = '유효하지 않은 캡처 간격입니다.';
+    }
+
+    // 최대 스크린샷 수 유효성 검증
+    if (settings.maxScreenshots < 10 || settings.maxScreenshots > 1000) {
+      errors.maxScreenshots = '최대 스크린샷 수는 10~1000 사이의 값이어야 합니다.';
+    }
+
+    return errors;
   };
 
   const handleSaveChanges = async () => {
     if (!settings) return;
+    
+    // 유효성 검증
+    const errors = validateSettings(settings);
+    setValidationErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      toast({
+        title: "설정 오류",
+        description: "입력값을 확인해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       setIsSaving(true);
@@ -188,8 +233,16 @@ export function Settings() {
                 min={10}
                 max={1000}
                 placeholder="최대 스크린샷 수"
+                className={validationErrors.maxScreenshots ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
               />
-              <p className="text-xs text-muted-foreground mt-1">세션당 저장할 최대 스크린샷 수 (10-1000)</p>
+              {validationErrors.maxScreenshots && (
+                <p className="text-xs text-red-500 mt-1">
+                  {validationErrors.maxScreenshots}
+                </p>
+              )}
+              {!validationErrors.maxScreenshots && (
+                <p className="text-xs text-muted-foreground mt-1">세션당 저장할 최대 스크린샷 수 (10-1000)</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -218,6 +271,38 @@ export function Settings() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">업무 기록과 스크린샷이 저장될 폴더</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tags Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Tags</CardTitle>
+            <CardDescription>태그 관련 설정을 관리합니다.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Recent Tags Limit</label>
+              <Input
+                type="number"
+                value={settings.recentTagsLimit}
+                onChange={(e) => updateSetting('recentTagsLimit', parseInt(e.target.value) || 10)}
+                min={3}
+                max={50}
+                placeholder="최근 태그 개수"
+                className={validationErrors.recentTagsLimit ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+              />
+              {validationErrors.recentTagsLimit && (
+                <p className="text-xs text-red-500 mt-1">
+                  {validationErrors.recentTagsLimit}
+                </p>
+              )}
+              {!validationErrors.recentTagsLimit && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  업무 시작 시 표시할 최근 사용 태그 개수 (3-50개)
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

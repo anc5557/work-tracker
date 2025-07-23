@@ -565,7 +565,7 @@ export class DataService {
   /**
    * 최근에 사용된 태그들을 조회합니다.
    */
-  async getRecentTags(limit: number = 5): Promise<string[]> {
+  async getRecentTags(limit: number = 10): Promise<string[]> {
     try {
       // 최근 30일간의 기록에서 태그 수집
       const endDate = new Date();

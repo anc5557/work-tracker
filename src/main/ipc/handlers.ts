@@ -500,7 +500,14 @@ export class IpcHandlers {
     // 최근 태그 조회
     ipcMain.handle('get-recent-tags', async (_, data?: { limit?: number }) => {
       try {
-        const limit = data?.limit || 5;
+        let limit = data?.limit;
+        
+        // limit이 지정되지 않은 경우 설정값 사용
+        if (!limit) {
+          const settings = await this.settingsService.loadSettings();
+          limit = settings.recentTagsLimit;
+        }
+        
         const recentTags = await this.dataService.getRecentTags(limit);
         return { success: true, data: recentTags };
       } catch (error) {
