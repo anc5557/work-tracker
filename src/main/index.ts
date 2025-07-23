@@ -8,6 +8,7 @@ class WorkTrackerApp {
   private ipcHandlers: IpcHandlers;
   private dataPath: string;
   private trayUpdateInterval: NodeJS.Timeout | null = null;
+  private trayMenuUpdateInterval: NodeJS.Timeout | null = null;
   private static instance: WorkTrackerApp | null = null;
 
   constructor() {
@@ -31,7 +32,9 @@ class WorkTrackerApp {
    * 외부에서 트레이 타이틀을 즉시 업데이트할 수 있는 메서드
    */
   public forceUpdateTrayTitle(): void {
-    this.updateTrayTitle();
+    if (this.tray && !this.tray.isDestroyed()) {
+      this.updateTrayTitle();
+    }
   }
 
   private setupApp(): void {
@@ -64,11 +67,20 @@ class WorkTrackerApp {
 
     // 앱 종료 시 정리
     app.on('before-quit', () => {
-      if (this.tray) {
-        this.tray.destroy();
-      }
+      // 먼저 인터벌 정리
       if (this.trayUpdateInterval) {
         clearInterval(this.trayUpdateInterval);
+        this.trayUpdateInterval = null;
+      }
+      if (this.trayMenuUpdateInterval) {
+        clearInterval(this.trayMenuUpdateInterval);
+        this.trayMenuUpdateInterval = null;
+      }
+      
+      // 그 다음 트레이 파괴
+      if (this.tray && !this.tray.isDestroyed()) {
+        this.tray.destroy();
+        this.tray = null;
       }
       
       // 자동 휴식 서비스 정리
@@ -196,7 +208,7 @@ class WorkTrackerApp {
    * 트레이 메뉴를 활성 세션 상태에 따라 동적으로 업데이트합니다.
    */
   private async updateTrayMenu(): Promise<void> {
-    if (!this.tray) return;
+    if (!this.tray || this.tray.isDestroyed()) return;
 
     try {
       const result = await this.ipcHandlers.getActiveSession();
@@ -290,32 +302,36 @@ class WorkTrackerApp {
         }
       ]);
 
-      this.tray.setContextMenu(contextMenu);
+      if (!this.tray.isDestroyed()) {
+        this.tray.setContextMenu(contextMenu);
+      }
     } catch (error) {
       console.error('Failed to update tray menu:', error);
       
-      // 오류 발생 시 기본 메뉴 설정
-      const fallbackMenu = Menu.buildFromTemplate([
-        {
-          label: 'Work Tracker 열기',
-          click: () => {
-            if (this.mainWindow) {
-              this.mainWindow.show();
-              this.mainWindow.focus();
-            } else {
-              this.createMainWindow();
+      // 오류 발생 시 기본 메뉴 설정 (트레이가 유효한 경우에만)
+      if (this.tray && !this.tray.isDestroyed()) {
+        const fallbackMenu = Menu.buildFromTemplate([
+          {
+            label: 'Work Tracker 열기',
+            click: () => {
+              if (this.mainWindow) {
+                this.mainWindow.show();
+                this.mainWindow.focus();
+              } else {
+                this.createMainWindow();
+              }
+            }
+          },
+          {
+            label: '종료',
+            click: () => {
+              app.quit();
             }
           }
-        },
-        {
-          label: '종료',
-          click: () => {
-            app.quit();
-          }
-        }
-      ]);
-      
-      this.tray.setContextMenu(fallbackMenu);
+        ]);
+        
+        this.tray.setContextMenu(fallbackMenu);
+      }
     }
   }
 
@@ -478,7 +494,7 @@ class WorkTrackerApp {
     }, 1000);
 
     // 30초마다 메뉴 상태 업데이트 (세션 상태 변화 감지)
-    setInterval(() => {
+    this.trayMenuUpdateInterval = setInterval(() => {
       this.updateTrayMenu();
     }, 30000);
   }
@@ -488,7 +504,7 @@ class WorkTrackerApp {
    */
   private async updateTrayTitle(): Promise<void> {
     try {
-      if (!this.tray) return;
+      if (!this.tray || this.tray.isDestroyed()) return;
 
       const result = await this.ipcHandlers.getActiveSession();
       
@@ -499,11 +515,15 @@ class WorkTrackerApp {
         const actualWorkTime = this.calculateActualWorkTime(activeSession);
         
         const elapsedTime = this.formatElapsedTime(actualWorkTime);
-        this.tray.setTitle(`${elapsedTime}`);
-        this.tray.setToolTip(`Work Tracker - ${activeSession.title} (${elapsedTime})`);
+        if (!this.tray.isDestroyed()) {
+          this.tray.setTitle(`${elapsedTime}`);
+          this.tray.setToolTip(`Work Tracker - ${activeSession.title} (${elapsedTime})`);
+        }
       } else {
-        this.tray.setTitle('');
-        this.tray.setToolTip('Work Tracker');
+        if (!this.tray.isDestroyed()) {
+          this.tray.setTitle('');
+          this.tray.setToolTip('Work Tracker');
+        }
       }
     } catch (error) {
       console.error('Failed to update tray title:', error);
