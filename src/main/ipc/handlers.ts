@@ -1,4 +1,5 @@
-import { ipcMain, shell, BrowserWindow, dialog } from 'electron';
+import { ipcMain, shell, BrowserWindow, dialog, app } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { spawn } from 'child_process';
 import { existsSync, readFile } from 'fs';
 import { promisify } from 'util';
@@ -23,6 +24,7 @@ export class IpcHandlers {
     this.autoRestService = new AutoRestService();
     this.setupHandlers();
     this.setupAutoRestEventHandlers();
+    this.setupAutoUpdaterEventHandlers();
   }
 
   /**
@@ -733,6 +735,59 @@ export class IpcHandlers {
         return { success: false, error: (error as Error).message };
       }
     });
+
+    // 앱 업데이트: 체크
+    ipcMain.handle('check-for-updates', async () => {
+      try {
+        // 자동 다운로드 비활성화 후 체크
+        autoUpdater.autoDownload = false;
+        autoUpdater.allowDowngrade = false;
+
+        // 로컬 테스트: 환경변수 UPDATE_FEED_URL이 있으면 해당 피드 사용
+        const feedUrl = process.env.UPDATE_FEED_URL;
+        if (feedUrl) {
+          try {
+            // electron-updater@6: setFeedURL 지원 제거됨. 대신 autoUpdater.updateConfigPath / requestHeaders 사용 불가.
+            // 따라서 feedUrl이 file: 또는 http:인 경우, latest-mac.yml이 위치한 디렉토리를 기준으로 동작하므로
+            // 단순히 checkForUpdates를 호출하면 electron-builder의 기본 규칙으로 검색됩니다.
+            // (로컬 file:// 경로에서는 앱이 샌드박스 외부 파일을 읽을 수 있어야 합니다)
+            (autoUpdater as any).setFeedURL?.({ url: feedUrl });
+          } catch {}
+          process.env.AUTO_UPDATER_URL = feedUrl;
+        }
+
+        // 기본: electron-builder가 GitHub Provider로 자동 설정
+        await autoUpdater.checkForUpdates();
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to check for updates:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    // 앱 업데이트: 다운로드
+    ipcMain.handle('download-update', async () => {
+      try {
+        await autoUpdater.downloadUpdate();
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to download update:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    // 앱 업데이트: 종료 후 설치
+    ipcMain.handle('quit-and-install', async () => {
+      try {
+        setImmediate(() => {
+          autoUpdater.quitAndInstall(false, true);
+        });
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to quit and install:', error);
+        return { success: false, error: (error as Error).message };
+      }
+    });
   }
 
   /**
@@ -802,6 +857,46 @@ export class IpcHandlers {
         console.error('Error handling auto rest event:', error);
       }
     });
+  }
+
+  /**
+   * 자동 업데이트 이벤트 핸들러를 설정합니다.
+   */
+  private setupAutoUpdaterEventHandlers(): void {
+    try {
+      // 개발 환경에서는 업데이트 체크를 건너뜁니다.
+      if (!app.isPackaged) {
+        return;
+      }
+
+      autoUpdater.on('error', (error: unknown) => {
+        console.error('AutoUpdater error:', error);
+        const message = (error && typeof error === 'object' && 'message' in (error as any)) ? (error as any).message : String(error);
+        this.sendToRenderer('update-error', { message });
+      });
+
+      autoUpdater.on('update-available', (info: any) => {
+        this.sendToRenderer('update-available', { version: info?.version, releaseNotes: info?.releaseNotes ?? null });
+      });
+
+      autoUpdater.on('update-not-available', (info: any) => {
+        this.sendToRenderer('update-not-available', { version: info?.version });
+      });
+
+      autoUpdater.on('download-progress', (progress: any) => {
+        this.sendToRenderer('update-progress', {
+          percent: progress.percent,
+          transferred: progress.transferred,
+          total: progress.total
+        });
+      });
+
+      autoUpdater.on('update-downloaded', (info: any) => {
+        this.sendToRenderer('update-downloaded', { version: info?.version });
+      });
+    } catch (error) {
+      console.error('Failed to setup auto updater handlers:', error);
+    }
   }
 
   /**

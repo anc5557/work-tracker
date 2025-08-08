@@ -68,3 +68,5 @@ data/screenshots/*
 !data/screenshots/.gitkeep
 data/records/*.json
 !data/records/.gitkeep
+
+release/

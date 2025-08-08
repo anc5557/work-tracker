@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { useToast } from '../../hooks/use-toast';
 import { useTheme } from '../theme-provider';
 import type { AppSettings } from '../../../shared/types';
-import { Loader2, Sun, Moon, Monitor } from 'lucide-react';
+import { Loader2, Sun, Moon, Monitor, DownloadCloud, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 
 export function Settings() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -14,9 +14,48 @@ export function Settings() {
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const [updateState, setUpdateState] = useState<
+    | { status: 'idle' }
+    | { status: 'checking' }
+    | { status: 'available'; version: string; notes?: string | null }
+    | { status: 'not-available'; current: string }
+    | { status: 'downloading'; percent: number }
+    | { status: 'downloaded'; version: string }
+    | { status: 'error'; message: string }
+  >({ status: 'idle' });
 
   useEffect(() => {
     loadSettings();
+    // 업데이트 이벤트 리스너 등록
+    const off: Array<() => void> = [];
+    const on = window.electronAPI.on;
+    on('update-available', (data: { version: string; releaseNotes?: string | null }) => {
+      setUpdateState({ status: 'available', version: data.version, notes: data.releaseNotes });
+      toast({ title: '업데이트 발견', description: `새 버전 ${data.version}을(를) 사용할 수 있습니다.` });
+    });
+    on('update-not-available', (data: { version: string }) => {
+      setUpdateState({ status: 'not-available', current: data.version });
+      toast({ title: '최신 상태', description: `현재 최신 버전(${data.version})입니다.` });
+    });
+    on('update-error', (data: { message: string }) => {
+      setUpdateState({ status: 'error', message: data.message });
+      toast({ title: '업데이트 오류', description: data.message, variant: 'destructive' });
+    });
+    on('update-progress', (data: { percent: number }) => {
+      setUpdateState({ status: 'downloading', percent: data.percent });
+    });
+    on('update-downloaded', (data: { version: string }) => {
+      setUpdateState({ status: 'downloaded', version: data.version });
+      toast({ title: '업데이트 다운로드 완료', description: '앱을 재시작하여 설치할 수 있습니다.' });
+    });
+    // 정리 함수
+    return () => {
+      window.electronAPI.removeAllListeners('update-available');
+      window.electronAPI.removeAllListeners('update-not-available');
+      window.electronAPI.removeAllListeners('update-error');
+      window.electronAPI.removeAllListeners('update-progress');
+      window.electronAPI.removeAllListeners('update-downloaded');
+    };
   }, []);
 
   const loadSettings = async () => {
@@ -137,6 +176,43 @@ export function Settings() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleCheckUpdates = async () => {
+    try {
+      setUpdateState({ status: 'checking' });
+      const res = await window.electronAPI.checkForUpdates();
+      if (!res?.success) {
+        throw new Error(res?.error || '업데이트 확인에 실패했습니다.');
+      }
+    } catch (error: any) {
+      setUpdateState({ status: 'error', message: error?.message || '업데이트 확인 실패' });
+      toast({ title: '오류', description: '업데이트 확인에 실패했습니다.', variant: 'destructive' });
+    }
+  };
+
+  const handleDownloadUpdate = async () => {
+    try {
+      const res = await window.electronAPI.downloadUpdate();
+      if (!res?.success) {
+        throw new Error(res?.error || '업데이트 다운로드 실패');
+      }
+    } catch (error: any) {
+      setUpdateState({ status: 'error', message: error?.message || '업데이트 다운로드 실패' });
+      toast({ title: '오류', description: '업데이트 다운로드에 실패했습니다.', variant: 'destructive' });
+    }
+  };
+
+  const handleQuitAndInstall = async () => {
+    try {
+      const res = await window.electronAPI.quitAndInstall();
+      if (!res?.success) {
+        throw new Error(res?.error || '설치 실행 실패');
+      }
+    } catch (error: any) {
+      setUpdateState({ status: 'error', message: error?.message || '설치 실행 실패' });
+      toast({ title: '오류', description: '설치를 시작하지 못했습니다.', variant: 'destructive' });
     }
   };
 
@@ -424,6 +500,59 @@ export function Settings() {
                 System
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Update Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>App Update</CardTitle>
+            <CardDescription>새 버전을 확인하고 설치합니다.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Button onClick={handleCheckUpdates} variant="default" disabled={updateState.status === 'checking'}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${updateState.status === 'checking' ? 'animate-spin' : ''}`} />
+                업데이트 확인
+              </Button>
+
+              {updateState.status === 'available' && (
+                <>
+                  <span className="text-sm">새 버전 {updateState.version} 이용 가능</span>
+                  <Button onClick={handleDownloadUpdate} variant="secondary">
+                    <DownloadCloud className="w-4 h-4 mr-2" /> 다운로드
+                  </Button>
+                </>
+              )}
+
+              {updateState.status === 'downloading' && (
+                <span className="text-sm">다운로드 중... {Math.round(updateState.percent)}%</span>
+              )}
+
+              {updateState.status === 'downloaded' && (
+                <>
+                  <span className="text-sm">다운로드 완료 (v{updateState.version})</span>
+                  <Button onClick={handleQuitAndInstall} variant="default">
+                    <CheckCircle className="w-4 h-4 mr-2" /> 재시작 후 설치
+                  </Button>
+                </>
+              )}
+
+              {updateState.status === 'not-available' && (
+                <span className="text-sm">최신 버전 사용 중 (v{updateState.current})</span>
+              )}
+
+              {updateState.status === 'error' && (
+                <div className="flex items-center text-red-500 text-sm">
+                  <AlertTriangle className="w-4 h-4 mr-2" /> {updateState.message}
+                </div>
+              )}
+            </div>
+            {updateState.status === 'available' && updateState.notes && (
+              <div className="text-xs text-muted-foreground whitespace-pre-wrap border border-border rounded p-3">
+                {updateState.notes}
+              </div>
+            )}
           </CardContent>
         </Card>
 

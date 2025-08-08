@@ -30,10 +30,10 @@ jobs:
       - name: Build (webpack)
         run: npm run build
 
-      - name: Publish macOS DMG to GitHub Releases
+      - name: Publish macOS DMG/ZIP to GitHub Releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --mac dmg --publish always
+        run: npx electron-builder --mac dmg zip --publish always
 
       - name: Upload build artifacts
         if: ${{ always() }}
@@ -44,4 +44,5 @@ jobs:
             release/*.dmg
             release/*.zip
             release/latest-mac.yml
+            release/latest-mac-*.yml
 

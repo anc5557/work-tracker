@@ -118,6 +118,12 @@ export type MainToRendererEvents = {
   // 자동 휴식 관련 이벤트
   'auto-rest-status-changed': AutoRestStatus;
   'auto-rest-event': AutoRestEvent;
+  // 앱 업데이트 관련 이벤트
+  'update-available': { version: string; releaseNotes?: string | null };
+  'update-not-available': { version: string };
+  'update-error': { message: string };
+  'update-progress': { percent: number; transferred: number; total: number };
+  'update-downloaded': { version: string };
 };
 
 // Renderer -> Main 요청
@@ -161,6 +167,10 @@ export type RendererToMainRequests = {
   'get-auto-rest-status': void;
   'update-auto-rest-settings': { enabled: boolean; idleTime: number };
   'reset-activity-timer': void; // 활동 타이머 리셋 (수동으로 활동 상태로 변경)
+  // 앱 업데이트 관련 요청
+  'check-for-updates': void;
+  'download-update': void;
+  'quit-and-install': void;
 };
 
 // 태그별 레포트 관련 타입
