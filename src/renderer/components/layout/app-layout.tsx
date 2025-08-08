@@ -1,18 +1,16 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { 
   Home, 
   Calendar, 
   BarChart3, 
   Settings,
-  Menu,
   X,
   ChevronLeft,
   ChevronRight,
   Clock,
-  Play
+  
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useSession } from '../../contexts/session-context';
@@ -267,33 +265,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           marginLeft: isDesktop ? `${currentSidebarWidth}px` : '0'
         }}
       >
-        {/* 고정 헤더 */}
-        <header className="bg-card border-b border-border px-4 py-3 lg:px-6 lg:py-4 app-no-drag flex-shrink-0">
-          <div className="flex items-center justify-between">
-            {/* 모바일 메뉴 버튼 */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="lg:hidden text-muted-foreground hover:text-foreground app-no-drag"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-
-            {/* 헤더 타이틀 (현재 페이지) - 이 부분만 드래그 가능 */}
-            <div className="flex-1 lg:flex lg:items-center lg:justify-center app-header">
-              <h1 className="text-foreground text-lg font-semibold ml-4 lg:ml-0 cursor-default select-none">
-                {navItems.find(item => isActive(item.path))?.label || 'Dashboard'}
-              </h1>
-            </div>
-
-            {/* 우측 액션 버튼들 (필요시 추가) */}
-            <div className="flex items-center space-x-2 app-no-drag">
-              {/* 추후 알림, 설정 등 버튼 추가 가능 */}
-            </div>
-          </div>
-        </header>
-
         {/* 스크롤 가능한 메인 콘텐츠 */}
         <main className="flex-1 p-6 bg-background app-main-content overflow-y-auto">
           {children}
