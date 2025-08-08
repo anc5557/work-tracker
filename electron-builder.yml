@@ -31,7 +31,7 @@ dmg:
 
 publish:
   provider: github
-  releaseType: draft
+  releaseType: release
 
 extraMetadata:
   main: dist/main/main.js

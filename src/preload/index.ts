@@ -25,6 +25,10 @@ export interface ElectronAPI {
   // 파일 시스템
   openExternal(url: string): Promise<void>;
   showItemInFolder(path: string): Promise<any>;
+  // 업데이트
+  checkForUpdates(): Promise<any>;
+  downloadUpdate(): Promise<any>;
+  quitAndInstall(): Promise<any>;
 }
 
 // Context Bridge로 API 노출
@@ -40,6 +44,10 @@ const electronAPI: ElectronAPI = {
   minimizeApp: () => ipcRenderer.invoke('app-minimize'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   showItemInFolder: (path) => ipcRenderer.invoke('show-item-in-folder', path),
+  // 업데이트
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  quitAndInstall: () => ipcRenderer.invoke('quit-and-install'),
 };
 
 // Context Bridge 등록
