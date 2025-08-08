@@ -743,7 +743,20 @@ export class IpcHandlers {
         autoUpdater.autoDownload = false;
         autoUpdater.allowDowngrade = false;
 
-        // 피드 URL은 electron-builder가 GitHub Provider로 자동 설정
+        // 로컬 테스트: 환경변수 UPDATE_FEED_URL이 있으면 해당 피드 사용
+        const feedUrl = process.env.UPDATE_FEED_URL;
+        if (feedUrl) {
+          try {
+            // electron-updater@6: setFeedURL 지원 제거됨. 대신 autoUpdater.updateConfigPath / requestHeaders 사용 불가.
+            // 따라서 feedUrl이 file: 또는 http:인 경우, latest-mac.yml이 위치한 디렉토리를 기준으로 동작하므로
+            // 단순히 checkForUpdates를 호출하면 electron-builder의 기본 규칙으로 검색됩니다.
+            // (로컬 file:// 경로에서는 앱이 샌드박스 외부 파일을 읽을 수 있어야 합니다)
+            (autoUpdater as any).setFeedURL?.({ url: feedUrl });
+          } catch {}
+          process.env.AUTO_UPDATER_URL = feedUrl;
+        }
+
+        // 기본: electron-builder가 GitHub Provider로 자동 설정
         await autoUpdater.checkForUpdates();
         return { success: true };
       } catch (error) {
