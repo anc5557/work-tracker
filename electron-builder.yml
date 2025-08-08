@@ -1,0 +1,31 @@
+appId: com.worktracker.app
+productName: Work Tracker
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - package.json
+
+asar: true
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.productivity
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+  # codesign/notarize는 GH 시크릿 제공 시 electron-builder가 자동 처리할 수 있습니다.
+  # hardenedRuntime: true
+
+dmg:
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+  # contents 등 기본값 사용
+
+publish:
+  provider: github
+  releaseType: draft
+
+extraMetadata:
+  main: dist/main/main.js
