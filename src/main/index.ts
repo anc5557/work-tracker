@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, Tray, nativeImage, session, Notification } from 'electron';
 import { join } from 'path';
+import { existsSync, readFileSync } from 'fs';
 import { IpcHandlers } from './ipc/handlers';
 
 class WorkTrackerApp {
@@ -450,9 +451,24 @@ class WorkTrackerApp {
     Menu.setApplicationMenu(menu);
   }
 
+  private resolveAssetPath(relativePath: string): string {
+    const devPath = join(__dirname, '../../public', relativePath);
+    const prodPath = join(process.resourcesPath, relativePath);
+
+    if (app.isPackaged) {
+      if (existsSync(prodPath)) return prodPath;
+      // 패키지 환경에서의 폴백 (예: 개발 빌드 구조 유지 시)
+      if (existsSync(devPath)) return devPath;
+      return prodPath;
+    }
+
+    if (existsSync(devPath)) return devPath;
+    return prodPath;
+  }
+
   private getAppIcon(): Electron.NativeImage {
     try {
-      const iconPath = join(__dirname, '../../public/icons/app-icon.png');
+      const iconPath = this.resolveAssetPath('icons/app-icon.png');
       return nativeImage.createFromPath(iconPath);
     } catch (error) {
       console.warn('Failed to load app icon:', error);
@@ -464,17 +480,17 @@ class WorkTrackerApp {
   private getTrayIcon(): Electron.NativeImage {
     try {
       // Retina 디스플레이 지원을 위해 @2x 이미지도 함께 로드
-      const iconPath = join(__dirname, '../../public/icons/tray-icon.png');
-      const icon2xPath = join(__dirname, '../../public/icons/tray-icon@2x.png');
+      const iconPath = this.resolveAssetPath('icons/tray-icon.png');
+      const icon2xPath = this.resolveAssetPath('icons/tray-icon@2x.png');
       
       let image: Electron.NativeImage;
       
       // @2x 이미지가 있으면 멀티 해상도 이미지로 생성
-      if (require('fs').existsSync(icon2xPath)) {
+      if (existsSync(icon2xPath)) {
         image = nativeImage.createFromPath(iconPath);
         image.addRepresentation({
           scaleFactor: 2.0,
-          buffer: require('fs').readFileSync(icon2xPath)
+          buffer: readFileSync(icon2xPath)
         });
       } else {
         image = nativeImage.createFromPath(iconPath);
